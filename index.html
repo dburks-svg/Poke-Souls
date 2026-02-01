@@ -2999,6 +2999,7 @@
       ],
       lastBonfire: { map: 'ashenPath', pos: { x: 4, y: 1 } },
       bonfireMenuOpen: false,
+      withdrawMenuOpen: false,
       hasSeenPrologue: false,
       examineText: null,
       playTime: 0,
@@ -3156,7 +3157,7 @@
 
           if (tile === 'W') return { ...state, playerDir: dir };
 
-          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false };
+          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false };
 
           if (tile === 'G' && (state.currentMap === 'ashenPath' || state.currentMap === 'hollowDeep')) {
             const encounter = state.grassEncounters.find(
@@ -3357,6 +3358,7 @@
             souls: 0,
             lastBonfire: { map: state.currentMap, pos: { ...state.playerPos } },
             bonfireMenuOpen: false,
+            withdrawMenuOpen: false,
             saveNotification: saveMessage
           };
 
@@ -3389,7 +3391,26 @@
         case 'CLOSE_BONFIRE_MENU': {
           return {
             ...state,
-            bonfireMenuOpen: false
+            bonfireMenuOpen: false,
+            withdrawMenuOpen: false
+          };
+        }
+
+        case 'TOGGLE_WITHDRAW_MENU': {
+          return {
+            ...state,
+            withdrawMenuOpen: !state.withdrawMenuOpen
+          };
+        }
+
+        case 'WITHDRAW_SOULS': {
+          const amount = Math.min(action.amount, state.bankedSouls);
+          if (amount <= 0) return state;
+          return {
+            ...state,
+            souls: state.souls + amount,
+            bankedSouls: state.bankedSouls - amount,
+            withdrawMenuOpen: false
           };
         }
 
@@ -3970,7 +3991,9 @@
             bossPhase: 1,
             arenaEffect: null,
             isBossFight: false,
-            diedToBoss: false
+            diedToBoss: false,
+            bonfireMenuOpen: false,
+            withdrawMenuOpen: false
           };
         }
 
@@ -4311,7 +4334,7 @@
             style={{ ...styles.header, cursor: isTouchDevice() ? 'pointer' : 'default' }}
             onClick={() => isTouchDevice() && window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}
           >
-            <span style={styles.souls}>SOULS {state.souls}</span>
+            <span style={styles.souls}>CARRIED {state.souls} | BANKED {state.bankedSouls}</span>
             <span style={{ color: GBC.textDim }}>{mapName}</span>
             <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM {state.team.length}/{MAX_TEAM_SIZE}</span>
           </div>
@@ -4410,6 +4433,39 @@
                 REST - Heal all, bank souls, respawn enemies
               </div>
 
+              {state.bankedSouls > 0 && (
+                <div>
+                  <div
+                    style={styles.bonfireOption}
+                    onClick={() => dispatch({ type: 'TOGGLE_WITHDRAW_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    WITHDRAW - Take souls from bank ({state.bankedSouls} available)
+                  </div>
+
+                  {state.withdrawMenuOpen && (
+                    <div style={{ marginLeft: '12px', marginBottom: '8px' }}>
+                      {[20, 50, state.bankedSouls].filter((amount, index, arr) => {
+                        // Filter out amounts > bankedSouls and remove duplicates
+                        if (amount > state.bankedSouls) return false;
+                        return arr.indexOf(amount) === index;
+                      }).map(amount => (
+                        <div
+                          key={amount}
+                          style={{ ...styles.bonfireOption, marginTop: '4px' }}
+                          onClick={() => { playSfx('soulsGained'); dispatch({ type: 'WITHDRAW_SOULS', amount }); }}
+                          onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                          onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                        >
+                          {amount === state.bankedSouls ? `ALL (${amount})` : amount}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {state.team.length > 1 && (
                 <div style={{ marginTop: 'var(--spacing-sm)' }}>
                   <div style={{ color: GBC.textDim, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-xs)' }}>SWITCH ACTIVE:</div>
@@ -4456,7 +4512,7 @@
             </div>
           )}
 
-          <TeamStatus team={state.team} activeIndex={state.activeCreatureIndex} bankedSouls={state.bankedSouls} />
+          <TeamStatus team={state.team} activeIndex={state.activeCreatureIndex} />
 
           {/* Examine prompt when on lore tile */}
           {(() => {
@@ -4510,14 +4566,11 @@
       );
     }
 
-    function TeamStatus({ team, activeIndex, bankedSouls }) {
+    function TeamStatus({ team, activeIndex }) {
       return (
         <div style={styles.teamStatus}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0 0 var(--spacing-xs)' }}>
+          <div style={{ margin: '0 0 var(--spacing-xs)' }}>
             <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM</span>
-            {bankedSouls !== undefined && (
-              <span style={{ color: GBC.gold, fontSize: 'var(--font-xs)' }}>BANKED: {bankedSouls}</span>
-            )}
           </div>
           {team.map((creature, i) => {
             const baseData = STARTERS[creature.id];
@@ -4764,7 +4817,7 @@
       return (
         <div style={styles.battleContainer}>
           <div style={styles.header}>
-            <span style={styles.souls}>SOULS {state.souls}</span>
+            <span style={styles.souls}>CARRIED {state.souls}</span>
             <span style={{ color: state.isBossFight ? GBC.red : GBC.textDim, fontSize: 'var(--font-sm)' }}>
               {state.isBossFight ? 'BOSS' : 'BATTLE'}
             </span>
