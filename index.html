@@ -2383,7 +2383,7 @@
     const calculateDamage = (move, attacker, defender, attackerCreature, defenderCreature, difficultyMult = 1.0) => {
       if (move.damage === 0) return 0;
       let damage = move.damage;
-      const effectiveness = TYPE_CHART[attackerCreature.type][defenderCreature.type];
+      const effectiveness = TYPE_CHART[attackerCreature.type]?.[defenderCreature.type] ?? 1.0;
       damage = Math.floor(damage * effectiveness);
 
       if (defender.isGuarding) {
@@ -2478,7 +2478,7 @@
     };
 
     const getCaptureChance = (currentHp, maxHp, captureBonus = 0) => {
-      const hpPercent = (currentHp / maxHp) * 100;
+      const hpPercent = (currentHp / (maxHp || 1)) * 100;
       let chance;
       if (hpPercent < 10) chance = 90;
       else if (hpPercent < 25) chance = 60;
@@ -2996,7 +2996,11 @@
       playTime: 0,
       saveNotification: null,
       hollowWardenDefeated: false,
-      isHollowWardenFight: false
+      isHollowWardenFight: false,
+      isBossFight: false,
+      currentEncounter: null,
+      pendingEncounter: null,
+      pendingCreature: null
     };
 
     function handleCreatureFaint(state, team, enemy, log) {
@@ -3796,7 +3800,7 @@
 
           let selectedMove;
           if (state.isBossFight) {
-            const playerHpPercent = activeCreature.hp / maxHp;
+            const playerHpPercent = activeCreature.hp / (maxHp || 1);
             if (state.isHollowWardenFight) {
               // Hollow Warden AI
               if (state.bossPhase === 2 && playerHpPercent < 0.4) {
@@ -3950,7 +3954,7 @@
             currentMap: state.lastBonfire.map,
             playerPos: { ...state.lastBonfire.pos },
             team,
-            activeCreatureIndex: team.findIndex(c => c.hp > 0) || 0,
+            activeCreatureIndex: Math.max(0, team.findIndex(c => c.hp > 0)),
             enemy: null,
             enemyCreature: null,
             battleLog: [],
@@ -4038,7 +4042,7 @@
               maxHp: actualMaxHp,
               maxStamina: actualMaxStamina,
               hp: actualMaxHp,
-              stamina: wildData.maxStamina,
+              stamina: actualMaxStamina,
               winded: false,
               isGuarding: false
             },
@@ -4452,8 +4456,8 @@
           {team.map((creature, i) => {
             const baseData = STARTERS[creature.id];
             const { maxHp, maxStamina } = applyScars(creature, baseData);
-            const hpPercent = (creature.hp / maxHp) * 100;
-            const staminaPercent = (creature.stamina / maxStamina) * 100;
+            const hpPercent = (creature.hp / (maxHp || 1)) * 100;
+            const staminaPercent = (creature.stamina / (maxStamina || 1)) * 100;
             const isActive = i === activeIndex;
             const isHollowed = creature.scars && creature.scars.length >= 3;
 
@@ -4556,8 +4560,8 @@
       const activeBase = STARTERS[activeCreature.id];
       const { maxHp, maxStamina, hasFlinching } = applyScars(activeCreature, activeBase);
 
-      const enemyHpPercent = (state.enemy.hp / state.enemyCreature.maxHp) * 100;
-      const playerHpPercent = (activeCreature.hp / maxHp) * 100;
+      const enemyHpPercent = (state.enemy.hp / (state.enemyCreature.maxHp || 1)) * 100;
+      const playerHpPercent = (activeCreature.hp / (maxHp || 1)) * 100;
       const prevLogLengthRef = useRef(state.battleLog.length);
       const [damageNumbers, setDamageNumbers] = useState([]);
       const [screenShake, setScreenShake] = useState(false);
