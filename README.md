@@ -8,7 +8,7 @@ A browser-based game that fuses creature collecting with Dark Souls-inspired mec
 
 ## How to Play
 
-Open `index.html` in a modern browser. No build step required.
+No build step required. Click the above link and enjoy. If you have any issues or comments leave them below.
 
 A help overlay appears on first launch with all game mechanics. Click the **?** button anytime to review.
 
@@ -444,8 +444,5 @@ Inspired by classic handheld era games:
 
 ## Credits
 
-Created by **BBAD Games**
-
-Built with **Claude Code**, React, and Tone.js
-
+Created by **BBADAHS Games**
 *"The flame remembers."*
