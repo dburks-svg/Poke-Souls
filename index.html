@@ -1550,6 +1550,153 @@
         color: GBC.textDim,
         marginBottom: '20px',
         fontStyle: 'italic'
+      },
+      pauseOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(10, 10, 20, 0.95)',
+        zIndex: 2000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      },
+      pauseMenu: {
+        backgroundColor: GBC.bgPanel,
+        border: `4px solid ${GBC.border}`,
+        padding: '24px',
+        minWidth: '280px',
+        fontFamily: '"Press Start 2P", monospace',
+        boxShadow: `inset -3px -3px 0 ${GBC.borderLight}, inset 3px 3px 0 #0a0a14, 0 0 60px rgba(0,0,0,0.9)`
+      },
+      pauseTitle: {
+        color: GBC.textDim,
+        fontSize: '10px',
+        textAlign: 'center',
+        marginBottom: '20px',
+        letterSpacing: '2px'
+      },
+      pauseOption: {
+        padding: '12px 16px',
+        marginBottom: '8px',
+        backgroundColor: GBC.bgLight,
+        border: `3px solid ${GBC.border}`,
+        color: GBC.text,
+        cursor: 'pointer',
+        fontSize: '8px',
+        textAlign: 'center',
+        transition: 'border-color 0.1s'
+      },
+      pauseOptionDisabled: {
+        opacity: 0.4,
+        cursor: 'not-allowed'
+      },
+      gearButton: {
+        position: 'fixed',
+        top: '8px',
+        right: '96px',
+        width: '36px',
+        height: '36px',
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.border}`,
+        borderRadius: '0',
+        color: GBC.textDim,
+        cursor: 'pointer',
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+      },
+      confirmOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(10, 10, 20, 0.95)',
+        zIndex: 2500,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      },
+      confirmDialog: {
+        backgroundColor: GBC.bgPanel,
+        border: `4px solid ${GBC.red}`,
+        padding: '24px',
+        maxWidth: '320px',
+        fontFamily: '"Press Start 2P", monospace',
+        boxShadow: `inset -3px -3px 0 #5a2020, inset 3px 3px 0 #0a0a14, 0 0 40px rgba(0,0,0,0.8)`
+      },
+      confirmText: {
+        color: GBC.text,
+        fontSize: '8px',
+        textAlign: 'center',
+        marginBottom: '20px',
+        lineHeight: '1.6'
+      },
+      confirmButtons: {
+        display: 'flex',
+        gap: '12px',
+        justifyContent: 'center'
+      },
+      confirmButton: {
+        padding: '10px 20px',
+        backgroundColor: GBC.bgLight,
+        border: `3px solid ${GBC.border}`,
+        color: GBC.text,
+        cursor: 'pointer',
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '8px'
+      },
+      confirmButtonDanger: {
+        borderColor: GBC.red,
+        color: GBC.red
+      },
+      loadScreen: {
+        textAlign: 'center',
+        padding: '40px 20px',
+        backgroundColor: GBC.bg
+      },
+      loadTitle: {
+        color: GBC.textDim,
+        fontSize: '12px',
+        marginBottom: '24px'
+      },
+      saveSlot: {
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.border}`,
+        padding: '16px',
+        marginBottom: '16px',
+        textAlign: 'left'
+      },
+      saveSlotTitle: {
+        color: GBC.gold,
+        fontSize: '9px',
+        marginBottom: '12px'
+      },
+      saveSlotStat: {
+        color: GBC.textDim,
+        fontSize: '7px',
+        marginBottom: '4px'
+      },
+      saveNotification: {
+        position: 'fixed',
+        bottom: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.gold}`,
+        padding: '12px 24px',
+        color: GBC.gold,
+        fontSize: '8px',
+        fontFamily: '"Press Start 2P", monospace',
+        zIndex: 1500,
+        boxShadow: `0 0 20px rgba(246, 224, 94, 0.3)`
       }
     };
 
@@ -1747,6 +1894,73 @@
       ]
     };
 
+    // ============= SAVE SYSTEM =============
+    const SAVE_KEY = 'pokeSoulsSaveData';
+
+    const getSaveData = (state) => {
+      return {
+        currentMap: state.currentMap,
+        playerPos: state.playerPos,
+        playerDir: state.playerDir,
+        team: state.team,
+        activeCreatureIndex: state.activeCreatureIndex,
+        souls: state.souls,
+        bankedSouls: state.bankedSouls,
+        droppedSouls: state.droppedSouls,
+        bossDefeated: state.bossDefeated,
+        shortcutUnlocked: state.shortcutUnlocked,
+        grassEncounters: state.grassEncounters,
+        lastBonfire: state.lastBonfire,
+        hasSeenPrologue: state.hasSeenPrologue,
+        playTime: state.playTime,
+        savedAt: Date.now()
+      };
+    };
+
+    const saveGame = (state) => {
+      try {
+        const saveData = getSaveData(state);
+        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+        return true;
+      } catch (e) {
+        console.error('Failed to save:', e);
+        return false;
+      }
+    };
+
+    const loadSaveData = () => {
+      try {
+        const data = localStorage.getItem(SAVE_KEY);
+        if (data) {
+          return JSON.parse(data);
+        }
+      } catch (e) {
+        console.error('Failed to load save:', e);
+      }
+      return null;
+    };
+
+    const deleteSaveData = () => {
+      try {
+        localStorage.removeItem(SAVE_KEY);
+        return true;
+      } catch (e) {
+        console.error('Failed to delete save:', e);
+        return false;
+      }
+    };
+
+    const formatPlayTime = (ms) => {
+      const totalSeconds = Math.floor(ms / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      }
+      return `${minutes}m ${seconds}s`;
+    };
+
     const initialState = {
       screen: 'starter',
       currentMap: 'ashenPath',
@@ -1774,7 +1988,9 @@
       lastBonfire: { map: 'ashenPath', pos: { x: 1, y: 1 } },
       bonfireMenuOpen: false,
       hasSeenPrologue: false,
-      examineText: null
+      examineText: null,
+      playTime: 0,
+      saveNotification: null
     };
 
     function handleCreatureFaint(state, team, enemy, log) {
@@ -2017,14 +2233,27 @@
 
           const grassEncounters = state.grassEncounters.map(e => ({ ...e, active: true }));
 
-          return {
+          const newState = {
             ...state,
             team,
             grassEncounters,
             bankedSouls: state.bankedSouls + state.souls,
             souls: 0,
             lastBonfire: { map: state.currentMap, pos: { ...state.playerPos } },
-            bonfireMenuOpen: false
+            bonfireMenuOpen: false,
+            saveNotification: 'Bonfire lit. Progress saved.'
+          };
+
+          // Auto-save when resting
+          saveGame(newState);
+
+          return newState;
+        }
+
+        case 'CLEAR_NOTIFICATION': {
+          return {
+            ...state,
+            saveNotification: null
           };
         }
 
@@ -2444,6 +2673,51 @@
           return initialState;
         }
 
+        case 'MANUAL_SAVE': {
+          const success = saveGame(state);
+          return {
+            ...state,
+            saveNotification: success ? 'Progress saved.' : 'Save failed!'
+          };
+        }
+
+        case 'LOAD_GAME': {
+          const saveData = action.saveData;
+          if (!saveData) return state;
+
+          return {
+            ...initialState,
+            screen: 'exploration',
+            currentMap: saveData.currentMap,
+            playerPos: saveData.playerPos,
+            playerDir: saveData.playerDir,
+            team: saveData.team,
+            activeCreatureIndex: saveData.activeCreatureIndex,
+            souls: saveData.souls,
+            bankedSouls: saveData.bankedSouls,
+            droppedSouls: saveData.droppedSouls,
+            bossDefeated: saveData.bossDefeated,
+            shortcutUnlocked: saveData.shortcutUnlocked,
+            grassEncounters: saveData.grassEncounters,
+            lastBonfire: saveData.lastBonfire,
+            hasSeenPrologue: saveData.hasSeenPrologue,
+            playTime: saveData.playTime || 0,
+            saveNotification: 'Journey resumed.'
+          };
+        }
+
+        case 'NEW_GAME_CONFIRMED': {
+          deleteSaveData();
+          return initialState;
+        }
+
+        case 'UPDATE_PLAY_TIME': {
+          return {
+            ...state,
+            playTime: state.playTime + action.delta
+          };
+        }
+
         default:
           return state;
       }
@@ -2709,7 +2983,7 @@
             color: GBC.textDim,
             border: `2px solid ${GBC.border}`
           }}>
-            WASD: Move | E: Rest | X: Examine
+            WASD: Move | E: Rest | X: Examine | ESC: Menu
           </div>
         </div>
       );
@@ -3226,6 +3500,175 @@
       );
     }
 
+    function GearButton({ onClick }) {
+      return (
+        <button
+          style={styles.gearButton}
+          onClick={onClick}
+          title="Menu (ESC)"
+        >
+          ⚙
+        </button>
+      );
+    }
+
+    function ConfirmDialog({ message, onConfirm, onCancel, confirmText = 'YES', cancelText = 'NO', danger = true }) {
+      return (
+        <div style={styles.confirmOverlay} onClick={onCancel}>
+          <div style={styles.confirmDialog} onClick={e => e.stopPropagation()}>
+            <div style={styles.confirmText}>{message}</div>
+            <div style={styles.confirmButtons}>
+              <button
+                style={styles.confirmButton}
+                onClick={onCancel}
+              >
+                {cancelText}
+              </button>
+              <button
+                style={{
+                  ...styles.confirmButton,
+                  ...(danger ? styles.confirmButtonDanger : {})
+                }}
+                onClick={onConfirm}
+              >
+                {confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function SaveSlotDisplay({ saveData }) {
+      if (!saveData) return null;
+
+      const totalScars = saveData.team.reduce((sum, c) => sum + (c.scars?.length || 0), 0);
+      const leadCreature = saveData.team[saveData.activeCreatureIndex] || saveData.team[0];
+      const mapName = saveData.currentMap === 'ashenPath' ? 'Ashen Path' : 'Fallen Keep';
+
+      return (
+        <div style={styles.saveSlot}>
+          <div style={styles.saveSlotTitle}>SAVED JOURNEY</div>
+          <div style={styles.saveSlotStat}>
+            Lead: {leadCreature?.name || 'Unknown'} ({saveData.team.length} creature{saveData.team.length > 1 ? 's' : ''})
+          </div>
+          <div style={styles.saveSlotStat}>
+            Location: {mapName}
+          </div>
+          <div style={styles.saveSlotStat}>
+            Souls banked: {saveData.bankedSouls}
+          </div>
+          <div style={styles.saveSlotStat}>
+            Scars: {totalScars}
+          </div>
+          <div style={styles.saveSlotStat}>
+            Time played: {formatPlayTime(saveData.playTime || 0)}
+          </div>
+          {saveData.bossDefeated && (
+            <div style={{ ...styles.saveSlotStat, color: GBC.gold }}>
+              Boss defeated
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function PauseMenu({ onResume, onSave, onLoad, onNewGame, onHelp, hasSave }) {
+      return (
+        <div style={styles.pauseOverlay}>
+          <div style={styles.pauseMenu}>
+            <div style={styles.pauseTitle}>PAUSED</div>
+
+            <div
+              style={styles.pauseOption}
+              onClick={onResume}
+              onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+              onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+            >
+              RESUME
+            </div>
+
+            <div
+              style={styles.pauseOption}
+              onClick={onSave}
+              onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+              onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+            >
+              SAVE GAME
+            </div>
+
+            <div
+              style={{
+                ...styles.pauseOption,
+                ...(hasSave ? {} : styles.pauseOptionDisabled)
+              }}
+              onClick={hasSave ? onLoad : undefined}
+              onMouseOver={e => hasSave && (e.currentTarget.style.borderColor = GBC.gold)}
+              onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+            >
+              LOAD GAME
+            </div>
+
+            <div
+              style={styles.pauseOption}
+              onClick={onNewGame}
+              onMouseOver={e => e.currentTarget.style.borderColor = GBC.red}
+              onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+            >
+              NEW GAME
+            </div>
+
+            <div
+              style={styles.pauseOption}
+              onClick={onHelp}
+              onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+              onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+            >
+              HELP
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function LoadScreen({ saveData, onContinue, onNewGame }) {
+      return (
+        <div style={styles.loadScreen}>
+          <div style={styles.loadTitle}>Continue your journey?</div>
+
+          <SaveSlotDisplay saveData={saveData} />
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '20px' }}>
+            <button
+              style={styles.button}
+              onClick={onNewGame}
+            >
+              NEW GAME
+            </button>
+            <button
+              style={{ ...styles.button, borderColor: GBC.gold, color: GBC.gold }}
+              onClick={onContinue}
+            >
+              CONTINUE
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function SaveNotification({ message, onDismiss }) {
+      useEffect(() => {
+        const timer = setTimeout(onDismiss, 2500);
+        return () => clearTimeout(timer);
+      }, [onDismiss]);
+
+      return (
+        <div style={styles.saveNotification}>
+          {message}
+        </div>
+      );
+    }
+
     function HelpOverlay({ onClose }) {
       return (
         <div style={styles.helpOverlay} onClick={onClose}>
@@ -3238,6 +3681,7 @@
                 WASD/Arrows - Move<br/>
                 E - Rest at bonfire<br/>
                 X - Examine surroundings<br/>
+                ESC - Pause menu<br/>
                 Click - Select moves
               </div>
             </div>
@@ -3308,18 +3752,75 @@
 
     function PokeSouls() {
       const [state, dispatch] = useReducer(gameReducer, initialState);
-      const [muted, setMuted] = useState(true); // Start muted, user clicks to enable
+      const [muted, setMuted] = useState(true);
       const [audioStarted, setAudioStarted] = useState(false);
       const [showHelp, setShowHelp] = useState(false);
+      const [showPauseMenu, setShowPauseMenu] = useState(false);
+      const [confirmDialog, setConfirmDialog] = useState(null);
+      const [checkingSave, setCheckingSave] = useState(true);
+      const [existingSave, setExistingSave] = useState(null);
       const prevBonfireRef = useRef(null);
+      const playTimeRef = useRef(Date.now());
 
-      // Show help on first visit
+      // Check for existing save on mount
       useEffect(() => {
-        const hasSeenHelp = localStorage.getItem('pokeSoulsHelpSeen');
-        if (!hasSeenHelp) {
-          setShowHelp(true);
+        const save = loadSaveData();
+        if (save && save.team && save.team.length > 0) {
+          setExistingSave(save);
         }
+        setCheckingSave(false);
       }, []);
+
+      // Show help on first visit (only if no save screen)
+      useEffect(() => {
+        if (!checkingSave && !existingSave) {
+          const hasSeenHelp = localStorage.getItem('pokeSoulsHelpSeen');
+          if (!hasSeenHelp) {
+            setShowHelp(true);
+          }
+        }
+      }, [checkingSave, existingSave]);
+
+      // Track play time
+      useEffect(() => {
+        if (state.screen === 'exploration' || state.screen === 'battle') {
+          const interval = setInterval(() => {
+            const now = Date.now();
+            const delta = now - playTimeRef.current;
+            playTimeRef.current = now;
+            dispatch({ type: 'UPDATE_PLAY_TIME', delta });
+          }, 1000);
+          return () => clearInterval(interval);
+        }
+        playTimeRef.current = Date.now();
+      }, [state.screen]);
+
+      // Handle ESC key for pause menu
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (e.key === 'Escape') {
+            // Don't open pause in certain screens
+            if (state.screen === 'starter' || state.screen === 'victory' ||
+                state.screen === 'credits' || state.screen === 'gameOver') {
+              return;
+            }
+            // Close help first if open
+            if (showHelp) {
+              setShowHelp(false);
+              return;
+            }
+            // Close confirm dialog if open
+            if (confirmDialog) {
+              setConfirmDialog(null);
+              return;
+            }
+            // Toggle pause menu
+            setShowPauseMenu(prev => !prev);
+          }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [state.screen, showHelp, confirmDialog]);
 
       const handleCloseHelp = () => {
         setShowHelp(false);
@@ -3336,9 +3837,9 @@
       // Compute the desired track based on game state
       const desiredTrack = (() => {
         if (state.screen === 'starter') return null;
-        if (state.screen === 'prologue') return 'bonfire'; // Somber, reflective
+        if (state.screen === 'prologue') return 'bonfire';
         if (state.screen === 'victory') return 'victory';
-        if (state.screen === 'credits') return 'bonfire'; // Peaceful closing
+        if (state.screen === 'credits') return 'bonfire';
         if (state.screen === 'gameOver') return 'gameOver';
         if (state.screen === 'battle') {
           if (state.isBossFight && state.bossPhase === 2) return 'bossPhase2';
@@ -3350,7 +3851,7 @@
         return null;
       })();
 
-      // Handle music transitions - only switch when track actually changes
+      // Handle music transitions
       useEffect(() => {
         if (!audioStarted || muted) return;
         if (desiredTrack) {
@@ -3358,10 +3859,8 @@
         }
       }, [desiredTrack, audioStarted, muted]);
 
-      // Keep getTrackForState for mute toggle
       const getTrackForState = useCallback(() => desiredTrack, [desiredTrack]);
 
-      // Handle mute toggle
       const handleToggleMute = async () => {
         if (!audioStarted) {
           await musicManager.init();
@@ -3377,12 +3876,135 @@
         }
       };
 
+      // Pause menu handlers
+      const handleResume = () => setShowPauseMenu(false);
+
+      const handleSave = () => {
+        dispatch({ type: 'MANUAL_SAVE' });
+        setShowPauseMenu(false);
+      };
+
+      const handleLoadRequest = () => {
+        const save = loadSaveData();
+        if (save) {
+          setConfirmDialog({
+            message: 'Load saved game? Unsaved progress will be lost.',
+            onConfirm: () => {
+              dispatch({ type: 'LOAD_GAME', saveData: save });
+              setConfirmDialog(null);
+              setShowPauseMenu(false);
+            },
+            onCancel: () => setConfirmDialog(null)
+          });
+        }
+      };
+
+      const handleNewGameRequest = () => {
+        setConfirmDialog({
+          message: 'Abandon this run? All progress will be lost.',
+          onConfirm: () => {
+            dispatch({ type: 'NEW_GAME_CONFIRMED' });
+            setConfirmDialog(null);
+            setShowPauseMenu(false);
+            setExistingSave(null);
+          },
+          onCancel: () => setConfirmDialog(null)
+        });
+      };
+
+      const handleHelpFromPause = () => {
+        setShowPauseMenu(false);
+        setShowHelp(true);
+      };
+
+      // Load screen handlers
+      const handleContinueSave = () => {
+        if (existingSave) {
+          dispatch({ type: 'LOAD_GAME', saveData: existingSave });
+          setExistingSave(null);
+        }
+      };
+
+      const handleNewGameFromLoad = () => {
+        setConfirmDialog({
+          message: 'Start new game? Saved progress will be lost.',
+          onConfirm: () => {
+            deleteSaveData();
+            setExistingSave(null);
+            setConfirmDialog(null);
+          },
+          onCancel: () => setConfirmDialog(null)
+        });
+      };
+
+      // Show loading state
+      if (checkingSave) {
+        return (
+          <div style={styles.container}>
+            <div style={{ textAlign: 'center', padding: '40px', color: GBC.textDim }}>
+              ...
+            </div>
+          </div>
+        );
+      }
+
+      // Show load screen if save exists and we're at starter screen
+      if (existingSave && state.screen === 'starter') {
+        return (
+          <div style={styles.container}>
+            <LoadScreen
+              saveData={existingSave}
+              onContinue={handleContinueSave}
+              onNewGame={handleNewGameFromLoad}
+            />
+            {confirmDialog && (
+              <ConfirmDialog
+                message={confirmDialog.message}
+                onConfirm={confirmDialog.onConfirm}
+                onCancel={confirmDialog.onCancel}
+              />
+            )}
+          </div>
+        );
+      }
+
+      // Check if pause menu is allowed
+      const canPause = state.screen === 'exploration' || state.screen === 'battle' || state.screen === 'prologue';
+      const hasSave = !!loadSaveData();
+
       return (
         <div style={styles.container}>
+          {canPause && <GearButton onClick={() => setShowPauseMenu(true)} />}
           <HelpButton onClick={() => setShowHelp(true)} />
           <MuteButton muted={muted} onToggle={handleToggleMute} />
 
           {showHelp && <HelpOverlay onClose={handleCloseHelp} />}
+
+          {showPauseMenu && canPause && (
+            <PauseMenu
+              onResume={handleResume}
+              onSave={handleSave}
+              onLoad={handleLoadRequest}
+              onNewGame={handleNewGameRequest}
+              onHelp={handleHelpFromPause}
+              hasSave={hasSave}
+            />
+          )}
+
+          {confirmDialog && (
+            <ConfirmDialog
+              message={confirmDialog.message}
+              onConfirm={confirmDialog.onConfirm}
+              onCancel={confirmDialog.onCancel}
+            />
+          )}
+
+          {state.saveNotification && (
+            <SaveNotification
+              message={state.saveNotification}
+              onDismiss={() => dispatch({ type: 'CLEAR_NOTIFICATION' })}
+            />
+          )}
 
           {state.screen === 'starter' && (
             <StarterSelect dispatch={dispatch} />
