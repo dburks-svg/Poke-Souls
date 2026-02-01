@@ -1,6 +1,6 @@
-\# Poke Souls
+\# Ashbound
 
-
+*The flame remembers.*
 
 A creature-battling meets Dark Souls browser game.
 

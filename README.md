@@ -1,8 +1,10 @@
-# Poke Souls
+# Ashbound
+
+*The flame remembers.*
 
 A browser-based game that fuses creature collecting with Dark Souls-inspired mechanics. Cute monsters. Grim consequences.
 
-**[Play Now](https://poke-souls.vercel.app)**
+**[Play Now](https://ashbound.vercel.app)**
 
 ## How to Play
 
@@ -442,8 +444,8 @@ Inspired by classic handheld era games:
 
 ## Credits
 
-Created by **Zamphere**
+Created by **BBAD Games**
 
 Built with **Claude Code**, React, and Tone.js
 
-*"The bonfire wars are over. But the flames still burn. And someone must carry them forward."*
+*"The flame remembers."*

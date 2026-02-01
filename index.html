@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Poke Souls</title>
+  <title>Ashbound</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     * {
@@ -2793,7 +2793,7 @@
     };
 
     // ============= SAVE SYSTEM =============
-    const SAVE_KEY = 'pokeSoulsSaveData';
+    const SAVE_KEY = 'ashboundSaveData';
 
     const getSaveData = (state) => {
       return {
@@ -2851,7 +2851,7 @@
     };
 
     // Run statistics storage
-    const STATS_KEY = 'pokeSoulsStats';
+    const STATS_KEY = 'ashboundStats';
 
     const getDefaultStats = () => ({
       totalRuns: 0,
@@ -4088,7 +4088,8 @@
 
       return (
         <div style={styles.difficultySelect}>
-          <h1 style={{ color: GBC.textDim, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-2xl)' }}>POKE SOULS</h1>
+          <h1 style={{ color: GBC.textDim, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-2xl)' }}>ASHBOUND</h1>
+          <div style={{ color: GBC.gold, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)', fontStyle: 'italic' }}>The flame remembers.</div>
           <div style={styles.difficultyTitle}>CHOOSE YOUR FATE</div>
 
           {Object.values(DIFFICULTIES).map(diff => (
@@ -4143,7 +4144,8 @@
     function StarterSelect({ dispatch }) {
       return (
         <div style={styles.starterSelect}>
-          <h1 style={{ color: GBC.textDim, marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-2xl)' }}>POKE SOULS</h1>
+          <h1 style={{ color: GBC.textDim, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-2xl)' }}>ASHBOUND</h1>
+          <div style={{ color: GBC.gold, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)', fontStyle: 'italic' }}>The flame remembers.</div>
           <p style={{ color: GBC.text, marginBottom: 'var(--spacing-lg)', fontSize: 'var(--font-sm)' }}>Choose your survivor</p>
           <div>
             {Object.values(STARTERS).map(starter => (
@@ -5097,17 +5099,17 @@
     function Credits({ dispatch }) {
       return (
         <div style={styles.credits}>
-          <div style={styles.creditsTitle}>POKE SOULS</div>
+          <div style={styles.creditsTitle}>ASHBOUND</div>
 
           <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-            <div style={{ color: GBC.textDim, fontSize: 'var(--font-sm)', fontStyle: 'italic' }}>
-              A game about persistence.
+            <div style={{ color: GBC.gold, fontSize: 'var(--font-sm)', fontStyle: 'italic' }}>
+              The flame remembers.
             </div>
           </div>
 
           <div style={styles.creditsSection}>
             <div style={styles.creditsLabel}>Created by</div>
-            <div style={styles.creditsValue}>Zamphere</div>
+            <div style={styles.creditsValue}>BBAD Games</div>
           </div>
 
           <div style={styles.creditsSection}>
@@ -5713,7 +5715,7 @@
       // Show help on first visit (only if no save screen)
       useEffect(() => {
         if (!checkingSave && !existingSave) {
-          const hasSeenHelp = localStorage.getItem('pokeSoulsHelpSeen');
+          const hasSeenHelp = localStorage.getItem('ashboundHelpSeen');
           if (!hasSeenHelp) {
             setShowHelp(true);
           }
@@ -5763,7 +5765,7 @@
 
       const handleCloseHelp = () => {
         setShowHelp(false);
-        localStorage.setItem('pokeSoulsHelpSeen', 'true');
+        localStorage.setItem('ashboundHelpSeen', 'true');
       };
 
       // Check if player is currently on a bonfire tile
