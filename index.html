@@ -5106,7 +5106,7 @@
                     opacity: 0.6
                   }}>B</span>
                   <div>SOUL BIND ({BIND_COST} souls)</div>
-                  <div style={{ fontSize: 'var(--font-xs)', marginTop: '3px' }}>
+                  <div style={{ fontSize: 'var(--font-xs)', marginTop: '3px', color: state.team.length >= MAX_TEAM_SIZE ? GBC.gold : 'inherit' }}>
                     {state.team.length >= MAX_TEAM_SIZE ? 'TEAM FULL' :
                      state.souls < BIND_COST ? `NEED ${BIND_COST - state.souls} MORE SOULS` :
                      `${captureChance}% CHANCE`}
