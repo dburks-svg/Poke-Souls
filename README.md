@@ -6,6 +6,8 @@ A browser-based game that fuses Pokemon-style creature collecting with Dark Soul
 
 Open `index.html` in a modern browser. No build step required.
 
+A help overlay appears on first launch with all game mechanics. Click the **?** button anytime to review.
+
 ## Controls
 
 | Key | Action |
@@ -15,6 +17,7 @@ Open `index.html` in a modern browser. No build step required.
 | S / Arrow Down | Move down |
 | D / Arrow Right | Move right |
 | E / Enter | Interact (bonfire menu) |
+| ? button | Show help overlay |
 
 Click buttons in battle to select moves.
 
@@ -29,6 +32,19 @@ Choose from three starters, each with a unique type:
 | Cindrath | Fire | 45 | 20 | Ember Slash (12 DMG) |
 | Marshveil | Water | 50 | 18 | Tide Crash (14 DMG) |
 | Thornwick | Grass | 40 | 24 | Vine Lash (10 DMG) |
+
+### Wild vs Boss Balance
+
+Wild creatures deal **25% less damage** than their tamed counterparts:
+
+| Wild Move | Damage |
+|-----------|--------|
+| Ember Slash | 9 |
+| Tide Crash | 10 |
+| Vine Lash | 8 |
+| Quick Strike | 4 |
+
+Random encounters are threatening but survivable. Boss fights are where you get destroyed.
 
 ### Type Effectiveness
 
@@ -169,12 +185,19 @@ Inspired by Game Boy Color Pokemon games:
 - GBC color palette
 - Animated bonfires with flickering flames
 
+## UI Elements
+
+- **? button** (top right): Opens help overlay with all game mechanics
+- **Speaker button** (top right): Toggle chiptune music on/off
+- **Help overlay**: Shows automatically on first visit, remembers dismissal
+
 ## Technical Details
 
 - **Framework**: React 18 (via CDN)
 - **Audio**: Tone.js for procedural chiptune synthesis
 - **Rendering**: Inline SVG for pixel art sprites
 - **State Management**: useReducer for game state
+- **Storage**: localStorage for help overlay preference
 - **Single File**: Everything in index.html, no build required
 
 ## Tips
