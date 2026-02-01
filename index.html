@@ -573,8 +573,8 @@
         maxStamina: 15,
         souls: 12,
         moves: [
-          { name: 'Ember Slash', cost: 6, damage: 12, priority: false },
-          { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+          { name: 'Ember Slash', cost: 6, damage: 9, priority: false },
+          { name: 'Quick Strike', cost: 3, damage: 4, priority: true },
           { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
         ]
       },
@@ -586,8 +586,8 @@
         maxStamina: 15,
         souls: 12,
         moves: [
-          { name: 'Tide Crash', cost: 7, damage: 14, priority: false },
-          { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+          { name: 'Tide Crash', cost: 7, damage: 10, priority: false },
+          { name: 'Quick Strike', cost: 3, damage: 4, priority: true },
           { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
         ]
       },
@@ -599,8 +599,8 @@
         maxStamina: 15,
         souls: 12,
         moves: [
-          { name: 'Vine Lash', cost: 5, damage: 10, priority: false },
-          { name: 'Quick Strike', cost: 3, damage: 5, priority: true },
+          { name: 'Vine Lash', cost: 5, damage: 8, priority: false },
+          { name: 'Quick Strike', cost: 3, damage: 4, priority: true },
           { name: 'Rest', cost: 0, damage: 0, effect: 'rest' }
         ]
       }
@@ -1356,6 +1356,89 @@
         border: `2px solid ${GBC.border}`,
         cursor: 'pointer',
         fontSize: '8px'
+      },
+      helpButton: {
+        position: 'fixed',
+        top: '8px',
+        right: '52px',
+        width: '36px',
+        height: '36px',
+        backgroundColor: GBC.bgPanel,
+        border: `3px solid ${GBC.border}`,
+        borderRadius: '0',
+        color: GBC.textDim,
+        cursor: 'pointer',
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+      },
+      helpOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(10, 10, 20, 0.95)',
+        zIndex: 2000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      },
+      helpContent: {
+        backgroundColor: GBC.bgPanel,
+        border: `4px solid ${GBC.border}`,
+        padding: '20px',
+        maxWidth: '400px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        fontFamily: '"Press Start 2P", monospace',
+        boxShadow: `inset -3px -3px 0 ${GBC.borderLight}, inset 3px 3px 0 #0a0a14, 0 0 40px rgba(0,0,0,0.8)`
+      },
+      helpTitle: {
+        color: GBC.red,
+        fontSize: '12px',
+        textAlign: 'center',
+        marginBottom: '16px',
+        textShadow: '2px 2px 0 #3d1515'
+      },
+      helpSection: {
+        marginBottom: '14px'
+      },
+      helpSectionTitle: {
+        color: GBC.gold,
+        fontSize: '8px',
+        marginBottom: '6px'
+      },
+      helpText: {
+        color: GBC.textDim,
+        fontSize: '7px',
+        lineHeight: '1.6'
+      },
+      helpClose: {
+        display: 'block',
+        width: '100%',
+        padding: '12px',
+        marginTop: '16px',
+        backgroundColor: GBC.bgLight,
+        border: `3px solid ${GBC.border}`,
+        color: GBC.text,
+        cursor: 'pointer',
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '9px',
+        textAlign: 'center',
+        boxShadow: `inset -2px -2px 0 ${GBC.borderLight}, inset 2px 2px 0 #0a0a14`
+      },
+      helpQuote: {
+        color: GBC.textDim,
+        fontSize: '7px',
+        textAlign: 'center',
+        fontStyle: 'italic',
+        marginTop: '12px'
       }
     };
 
@@ -2703,11 +2786,116 @@
       );
     }
 
+    function HelpButton({ onClick }) {
+      return (
+        <button
+          style={styles.helpButton}
+          onClick={onClick}
+          title="How to Play"
+        >
+          ?
+        </button>
+      );
+    }
+
+    function HelpOverlay({ onClose }) {
+      return (
+        <div style={styles.helpOverlay} onClick={onClose}>
+          <div style={styles.helpContent} onClick={e => e.stopPropagation()}>
+            <div style={styles.helpTitle}>HOW TO SURVIVE</div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>CONTROLS</div>
+              <div style={styles.helpText}>
+                WASD/Arrows - Move<br/>
+                E - Rest at bonfire<br/>
+                Click - Select moves
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>STAMINA</div>
+              <div style={styles.helpText}>
+                Every move costs stamina.<br/>
+                End turn below 5 = "Winded" (take +25% damage)<br/>
+                Use REST to recover stamina (skips your attack)
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>SOULS</div>
+              <div style={styles.helpText}>
+                Earn from victories. Drop ALL on death.<br/>
+                Die again before reclaiming = gone forever.<br/>
+                Bank at bonfires for safety.
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>SCARS</div>
+              <div style={styles.helpText}>
+                Creatures gain permanent scars when they faint.<br/>
+                Three scars = Hollowed (75% stats)
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>BONFIRE</div>
+              <div style={styles.helpText}>
+                Heals team. Banks souls. BUT respawns all enemies.
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>CAPTURE</div>
+              <div style={styles.helpText}>
+                SOUL BIND costs 20 souls. Lower HP = better odds.
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>TYPE MATCHUPS</div>
+              <div style={styles.helpText}>
+                <span style={{ color: GBC.fire }}>Fire</span> &gt; <span style={{ color: GBC.grass }}>Grass</span> &gt; <span style={{ color: GBC.water }}>Water</span> &gt; <span style={{ color: GBC.fire }}>Fire</span>
+              </div>
+            </div>
+
+            <div style={styles.helpSection}>
+              <div style={styles.helpSectionTitle}>GOAL</div>
+              <div style={styles.helpText}>
+                Defeat Keeper Varek in the Fallen Keep.
+              </div>
+            </div>
+
+            <div style={styles.helpQuote}>"Scarred but not broken."</div>
+
+            <button style={styles.helpClose} onClick={onClose}>
+              CLOSE
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     function PokeSouls() {
       const [state, dispatch] = useReducer(gameReducer, initialState);
       const [muted, setMuted] = useState(true); // Start muted, user clicks to enable
       const [audioStarted, setAudioStarted] = useState(false);
+      const [showHelp, setShowHelp] = useState(false);
       const prevBonfireRef = useRef(null);
+
+      // Show help on first visit
+      useEffect(() => {
+        const hasSeenHelp = localStorage.getItem('pokeSoulsHelpSeen');
+        if (!hasSeenHelp) {
+          setShowHelp(true);
+        }
+      }, []);
+
+      const handleCloseHelp = () => {
+        setShowHelp(false);
+        localStorage.setItem('pokeSoulsHelpSeen', 'true');
+      };
 
       // Determine which track should play
       const getTrackForState = useCallback(() => {
@@ -2756,7 +2944,10 @@
 
       return (
         <div style={styles.container}>
+          <HelpButton onClick={() => setShowHelp(true)} />
           <MuteButton muted={muted} onToggle={handleToggleMute} />
+
+          {showHelp && <HelpOverlay onClose={handleCloseHelp} />}
 
           {state.screen === 'starter' && (
             <StarterSelect dispatch={dispatch} />
