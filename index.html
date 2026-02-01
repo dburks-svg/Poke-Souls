@@ -3000,6 +3000,7 @@
       lastBonfire: { map: 'ashenPath', pos: { x: 4, y: 1 } },
       bonfireMenuOpen: false,
       withdrawMenuOpen: false,
+      depositMenuOpen: false,
       hasSeenPrologue: false,
       examineText: null,
       playTime: 0,
@@ -3157,7 +3158,7 @@
 
           if (tile === 'W') return { ...state, playerDir: dir };
 
-          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false };
+          let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false };
 
           if (tile === 'G' && (state.currentMap === 'ashenPath' || state.currentMap === 'hollowDeep')) {
             const encounter = state.grassEncounters.find(
@@ -3359,6 +3360,7 @@
             lastBonfire: { map: state.currentMap, pos: { ...state.playerPos } },
             bonfireMenuOpen: false,
             withdrawMenuOpen: false,
+            depositMenuOpen: false,
             saveNotification: saveMessage
           };
 
@@ -3392,7 +3394,8 @@
           return {
             ...state,
             bonfireMenuOpen: false,
-            withdrawMenuOpen: false
+            withdrawMenuOpen: false,
+            depositMenuOpen: false
           };
         }
 
@@ -3411,6 +3414,24 @@
             souls: state.souls + amount,
             bankedSouls: state.bankedSouls - amount,
             withdrawMenuOpen: false
+          };
+        }
+
+        case 'TOGGLE_DEPOSIT_MENU': {
+          return {
+            ...state,
+            depositMenuOpen: !state.depositMenuOpen
+          };
+        }
+
+        case 'DEPOSIT_SOULS': {
+          const amount = Math.min(action.amount, state.souls);
+          if (amount <= 0) return state;
+          return {
+            ...state,
+            souls: state.souls - amount,
+            bankedSouls: state.bankedSouls + amount,
+            depositMenuOpen: false
           };
         }
 
@@ -3993,7 +4014,8 @@
             isBossFight: false,
             diedToBoss: false,
             bonfireMenuOpen: false,
-            withdrawMenuOpen: false
+            withdrawMenuOpen: false,
+            depositMenuOpen: false
           };
         }
 
@@ -4461,6 +4483,55 @@
                           {amount === state.bankedSouls ? `ALL (${amount})` : amount}
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {state.souls > 0 && (
+                <div>
+                  <div
+                    style={styles.bonfireOption}
+                    onClick={() => dispatch({ type: 'TOGGLE_DEPOSIT_MENU' })}
+                    onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                    onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                  >
+                    DEPOSIT - Put souls in bank ({state.souls} carried)
+                  </div>
+
+                  {state.depositMenuOpen && (
+                    <div style={{ marginLeft: '12px', marginBottom: '8px' }}>
+                      {[20, 50].filter(amount => amount < state.souls).map(amount => (
+                        <div
+                          key={amount}
+                          style={{ ...styles.bonfireOption, marginTop: '4px' }}
+                          onClick={() => { playSfx('bonfireRest'); dispatch({ type: 'DEPOSIT_SOULS', amount }); }}
+                          onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                          onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                        >
+                          {amount}
+                        </div>
+                      ))}
+
+                      {state.souls > 20 && (
+                        <div
+                          style={{ ...styles.bonfireOption, marginTop: '4px' }}
+                          onClick={() => { playSfx('bonfireRest'); dispatch({ type: 'DEPOSIT_SOULS', amount: state.souls - 20 }); }}
+                          onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                          onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                        >
+                          KEEP 20 ({state.souls - 20})
+                        </div>
+                      )}
+
+                      <div
+                        style={{ ...styles.bonfireOption, marginTop: '4px' }}
+                        onClick={() => { playSfx('bonfireRest'); dispatch({ type: 'DEPOSIT_SOULS', amount: state.souls }); }}
+                        onMouseOver={e => e.currentTarget.style.borderColor = GBC.gold}
+                        onMouseOut={e => e.currentTarget.style.borderColor = GBC.border}
+                      >
+                        ALL ({state.souls})
+                      </div>
                     </div>
                   )}
                 </div>
