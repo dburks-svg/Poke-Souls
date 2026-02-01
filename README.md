@@ -2,6 +2,8 @@
 
 A browser-based game that fuses creature collecting with Dark Souls-inspired mechanics. Cute monsters. Grim consequences.
 
+**[Play Now](https://poke-souls.vercel.app)**
+
 ## How to Play
 
 Open `index.html` in a modern browser. No build step required.
