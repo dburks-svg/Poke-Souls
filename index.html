@@ -2441,6 +2441,7 @@
         type: 'dark',
         maxHp: STARTERS.umbravine.maxHp + 5, // +5 HP for Deep creatures
         maxStamina: STARTERS.umbravine.maxStamina + 2, // +2 Stamina
+        souls: 25, // More souls from Hollow Deep creatures
         moves: STARTERS.umbravine.moves
       } : {
         id: 'wildSolrath',
@@ -2448,6 +2449,7 @@
         type: 'light',
         maxHp: STARTERS.solrath.maxHp + 5,
         maxStamina: STARTERS.solrath.maxStamina + 2,
+        souls: 28, // Light creatures give slightly more
         moves: STARTERS.solrath.moves
       };
 
@@ -2793,7 +2795,7 @@
     };
 
     // ============= SAVE SYSTEM =============
-    const SAVE_KEY = 'ashboundSaveData';
+    const SAVE_KEY = 'scarsOfAshSaveData';
 
     const getSaveData = (state) => {
       return {
@@ -2823,7 +2825,6 @@
         localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
         return true;
       } catch (e) {
-        console.error('Failed to save:', e);
         return false;
       }
     };
@@ -2835,7 +2836,7 @@
           return JSON.parse(data);
         }
       } catch (e) {
-        console.error('Failed to load save:', e);
+        // Silent fail - return null
       }
       return null;
     };
@@ -2845,13 +2846,12 @@
         localStorage.removeItem(SAVE_KEY);
         return true;
       } catch (e) {
-        console.error('Failed to delete save:', e);
         return false;
       }
     };
 
     // Run statistics storage
-    const STATS_KEY = 'ashboundStats';
+    const STATS_KEY = 'scarsOfAshStats';
 
     const getDefaultStats = () => ({
       totalRuns: 0,
@@ -2874,7 +2874,7 @@
           return { ...getDefaultStats(), ...stats };
         }
       } catch (e) {
-        console.error('Failed to load stats:', e);
+        // Silent fail - return defaults
       }
       return getDefaultStats();
     };
@@ -2884,7 +2884,6 @@
         localStorage.setItem(STATS_KEY, JSON.stringify(stats));
         return true;
       } catch (e) {
-        console.error('Failed to save stats:', e);
         return false;
       }
     };
@@ -3933,6 +3932,8 @@
               stamina: maxStamina,
               winded: false,
               burnTurns: 0,
+              poisonTurns: 0,
+              chillTurns: 0,
               isGuarding: false
             };
           });
@@ -4190,7 +4191,7 @@
 
     function Exploration({ state, dispatch }) {
       const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : state.currentMap === 'hollowDeep' ? HOLLOW_DEEP : FALLEN_KEEP;
-      const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : 'Fallen Keep';
+      const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : state.currentMap === 'hollowDeep' ? 'The Hollow Deep' : 'Fallen Keep';
 
       const handleKeyDown = useCallback((e) => {
         const key = e.key.toLowerCase();
@@ -5498,7 +5499,7 @@
 
       const totalScars = saveData.team.reduce((sum, c) => sum + (c.scars?.length || 0), 0);
       const leadCreature = saveData.team[saveData.activeCreatureIndex] || saveData.team[0];
-      const mapName = saveData.currentMap === 'ashenPath' ? 'Ashen Path' : 'Fallen Keep';
+      const mapName = saveData.currentMap === 'ashenPath' ? 'Ashen Path' : saveData.currentMap === 'hollowDeep' ? 'The Hollow Deep' : 'Fallen Keep';
       const diff = DIFFICULTIES[saveData.difficulty] || DIFFICULTIES.scarred;
 
       return (
@@ -5710,7 +5711,7 @@
       );
     }
 
-    function PokeSouls() {
+    function ScarsOfAsh() {
       const [state, dispatch] = useReducer(gameReducer, initialState);
       const [muted, setMuted] = useState(true);
       const [audioStarted, setAudioStarted] = useState(false);
@@ -5735,7 +5736,7 @@
       // Show help on first visit (only if no save screen)
       useEffect(() => {
         if (!checkingSave && !existingSave) {
-          const hasSeenHelp = localStorage.getItem('ashboundHelpSeen');
+          const hasSeenHelp = localStorage.getItem('scarsOfAshHelpSeen');
           if (!hasSeenHelp) {
             setShowHelp(true);
           }
@@ -5785,7 +5786,7 @@
 
       const handleCloseHelp = () => {
         setShowHelp(false);
-        localStorage.setItem('ashboundHelpSeen', 'true');
+        localStorage.setItem('scarsOfAshHelpSeen', 'true');
       };
 
       // Check if player is currently on a bonfire tile
@@ -6057,7 +6058,7 @@
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<PokeSouls />);
+    root.render(<ScarsOfAsh />);
   </script>
 </body>
 </html>
