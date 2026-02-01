@@ -5888,11 +5888,6 @@
         setHasStarted(true);
       };
 
-      // Show tap to start screen
-      if (!hasStarted) {
-        return <TapToStart onStart={handleStart} />;
-      }
-
       // Check for existing save on mount
       useEffect(() => {
         const save = loadSaveData();
@@ -6114,6 +6109,11 @@
           onCancel: () => setConfirmDialog(null)
         });
       };
+
+      // Show tap to start screen (must be after all hooks)
+      if (!hasStarted) {
+        return <TapToStart onStart={handleStart} />;
+      }
 
       // Show loading state
       if (checkingSave) {
