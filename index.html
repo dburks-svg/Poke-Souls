@@ -2897,8 +2897,15 @@
         localStorage.setItem('pokeSoulsHelpSeen', 'true');
       };
 
-      // Determine which track should play
-      const getTrackForState = useCallback(() => {
+      // Check if player is currently on a bonfire tile
+      const isOnBonfire = useCallback(() => {
+        const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : FALLEN_KEEP;
+        const tile = map[state.playerPos.y]?.[state.playerPos.x];
+        return tile === 'B';
+      }, [state.currentMap, state.playerPos]);
+
+      // Compute the desired track based on game state
+      const desiredTrack = (() => {
         if (state.screen === 'starter') return null;
         if (state.screen === 'victory') return 'victory';
         if (state.screen === 'gameOver') return 'gameOver';
@@ -2907,24 +2914,21 @@
           return 'battle';
         }
         if (state.screen === 'exploration') {
-          // Check if at bonfire
-          const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : FALLEN_KEEP;
-          const tile = map[state.playerPos.y]?.[state.playerPos.x];
-          if (tile === 'B') return 'bonfire';
-          return 'exploration';
+          return isOnBonfire() ? 'bonfire' : 'exploration';
         }
         return null;
-      }, [state.screen, state.isBossFight, state.bossPhase, state.currentMap, state.playerPos]);
+      })();
 
-      // Handle music transitions
+      // Handle music transitions - only switch when track actually changes
       useEffect(() => {
         if (!audioStarted || muted) return;
-
-        const track = getTrackForState();
-        if (track) {
-          musicManager.switchTrack(track);
+        if (desiredTrack) {
+          musicManager.switchTrack(desiredTrack);
         }
-      }, [getTrackForState, audioStarted, muted]);
+      }, [desiredTrack, audioStarted, muted]);
+
+      // Keep getTrackForState for mute toggle
+      const getTrackForState = useCallback(() => desiredTrack, [desiredTrack]);
 
       // Handle mute toggle
       const handleToggleMute = async () => {
