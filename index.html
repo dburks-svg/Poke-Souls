@@ -1117,7 +1117,8 @@
       water: { fire: 1.5, water: 1.0, grass: 0.5, dark: 1.0, light: 1.0, darklight: 1.0 },
       grass: { fire: 0.5, water: 1.5, grass: 1.0, dark: 0.5, light: 1.0, darklight: 0.75 },
       dark: { fire: 1.0, water: 1.0, grass: 1.5, dark: 1.0, light: 1.5, darklight: 1.25 },
-      light: { fire: 1.5, water: 1.0, grass: 1.0, dark: 0.5, light: 1.0, darklight: 1.25 }
+      light: { fire: 1.5, water: 1.0, grass: 1.0, dark: 0.5, light: 1.0, darklight: 1.25 },
+      darklight: { fire: 1.25, water: 1.0, grass: 1.25, dark: 0.75, light: 0.75, darklight: 1.0 }
     };
 
     const SCAR_TYPES = [
@@ -4026,7 +4027,6 @@
           };
         }
 
-        default:
         case 'CONFIRM_ENCOUNTER': {
           if (!state.pendingEncounter) return state;
           const { wildData, actualMaxHp, actualMaxStamina, encounter } = state.pendingEncounter;
@@ -4067,6 +4067,7 @@
           };
         }
 
+        default:
           return state;
       }
     }
