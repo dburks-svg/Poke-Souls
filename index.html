@@ -3003,7 +3003,12 @@
       activeCreature.scars = [...(activeCreature.scars || []), scar];
 
       log.push(`${activeCreature.nickname || activeCreature.name} has fallen!`);
-      log.push(`${activeCreature.nickname || activeCreature.name} gained scar: ${scar.name} (${scar.description})`);
+      const scarMessages = [
+        `${activeCreature.nickname || activeCreature.name} gained a scar. It's a look.`,
+        `Another scar for ${activeCreature.nickname || activeCreature.name}. Basically tattoos at this point.`
+      ];
+      log.push(scarMessages[Math.floor(Math.random() * scarMessages.length)]);
+      log.push(`  → ${scar.name}: ${scar.description}`);
 
       if (activeCreature.scars.length >= difficulty.hollowedThreshold) {
         log.push(`${activeCreature.nickname || activeCreature.name} has become Hollowed...`);
@@ -3319,9 +3324,13 @@
 
           const grassEncounters = state.grassEncounters.map(e => ({ ...e, active: true }));
 
+          const bonfireMessages = [
+            "Progress saved. Enemies respawned. Life is compromise.",
+            "Rested. Ready to make the same mistakes."
+          ];
           const saveMessage = difficulty.bonfireHeals
-            ? 'Bonfire lit. Progress saved.'
-            : 'Bonfire lit. Progress saved. No healing.';
+            ? bonfireMessages[Math.floor(Math.random() * bonfireMessages.length)]
+            : "Progress saved. No healing. Broken mode is fun, right?";
 
           const newState = {
             ...state,
@@ -3613,7 +3622,7 @@
             capturedCreature.moves = STARTERS[capturedCreature.id].moves;
             capturedCreature.nickname = null; // Will be set in nickname screen
 
-            log.push(`Success! ${capturedCreature.name} joined your team!`);
+            log.push(`${capturedCreature.name} joined your disaster.`);
 
             const grassEncounters = state.grassEncounters.map(e =>
               e.x === state.currentEncounter?.x && e.y === state.currentEncounter?.y
@@ -3632,7 +3641,7 @@
             };
           } else {
             // FAILED - enemy gets a free attack (moved from below)
-            log.push("The binding failed! The creature breaks free!");
+            log.push("They said no. Respect boundaries.");
 
             // Enemy retaliates
             return {
@@ -4609,8 +4618,8 @@
 
           // Capture attempts
           if (log.includes('Attempting soul bind')) playSfx('bindAttempt');
-          if (log.includes('joined your team')) playSfx('captureSuccess');
-          if (log.includes('binding failed')) playSfx('captureFail');
+          if (log.includes('joined your disaster')) playSfx('captureSuccess');
+          if (log.includes('said no')) playSfx('captureFail');
         });
       }, [state.battleLog, state.enemyCreature?.name]);
 
@@ -5012,7 +5021,18 @@
 
       return (
         <div style={styles.gameOver}>
-          <div style={{ fontSize: 'var(--font-lg)', color: GBC.red, marginBottom: 'var(--spacing-lg)' }}>YOU DIED</div>
+          <div style={{ fontSize: 'var(--font-lg)', color: GBC.red, marginBottom: 'var(--spacing-lg)' }}>
+            {(() => {
+              const deathMessages = [
+                "You died. Again.",
+                "That went well.",
+                "The flame remembers. Unfortunately.",
+                "Your creatures believed in you. That was their mistake.",
+                "Scars build character. You have plenty now."
+              ];
+              return deathMessages[Math.floor(Math.random() * deathMessages.length)];
+            })()}
+          </div>
 
           {isPermadeath && (
             <div style={{
@@ -5179,7 +5199,7 @@
           </div>
 
           <div style={{ color: GBC.gold, fontSize: 'var(--font-md)', marginBottom: 'var(--spacing-sm)' }}>
-            {creature.name} joined your team!
+            {creature.name} joined your disaster.
           </div>
 
           <div style={{ color: GBC.textDim, fontSize: 'var(--font-sm)', marginBottom: 'var(--spacing-lg)' }}>
