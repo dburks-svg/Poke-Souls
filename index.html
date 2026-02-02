@@ -6198,22 +6198,37 @@
             fontFamily: '"Press Start 2P", monospace',
             cursor: 'pointer',
             zIndex: 9999,
+            padding: 'var(--spacing-lg)',
           }}
           onClick={onStart}
           onTouchStart={onStart}
         >
-          <div style={{
-            fontSize: 'var(--font-2xl)',
-            color: GBC.gold,
-            marginBottom: 'var(--spacing-xl)',
-            textShadow: '2px 2px 0 #744210'
-          }}>
-            SCARS OF ASH
-          </div>
+          <img
+            src="assets/logo.png"
+            alt="Scars of Ash"
+            style={{
+              maxWidth: '80%',
+              maxHeight: '40vh',
+              width: 'auto',
+              height: 'auto',
+              imageRendering: 'pixelated',
+              marginBottom: 'var(--spacing-lg)',
+            }}
+          />
           <div style={{
             fontSize: 'var(--font-sm)',
+            color: GBC.gold,
+            marginBottom: 'var(--spacing-md)',
+            textAlign: 'center',
+            animation: 'flicker 2s infinite',
+            textShadow: '1px 1px 0 #744210'
+          }}>
+            WARNING: THIS GAME MAY BREAK YOU
+          </div>
+          <div style={{
+            fontSize: 'var(--font-xs)',
             color: GBC.textDim,
-            marginBottom: 'var(--spacing-lg)'
+            marginBottom: 'var(--spacing-xl)'
           }}>
             The flame remembers.
           </div>
