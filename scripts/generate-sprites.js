@@ -97,17 +97,42 @@ const BOSSES = {
   }
 };
 
-// Player sprite definition (32x32 minimum required by API)
-const PLAYER = {
-  directions: ['down', 'up', 'left', 'right'],
-  prompts: {
-    down: 'Small RPG hero facing forward, red shirt, brown hair, simple design, 32x32 GBC pixel art, game sprite, centered',
-    up: 'Small RPG hero facing away, red shirt, brown hair, back view, 32x32 GBC pixel art, game sprite, centered',
-    left: 'Small RPG hero facing left, red shirt, brown hair, side view, 32x32 GBC pixel art, game sprite, centered',
-    right: 'Small RPG hero facing right, red shirt, brown hair, side view, 32x32 GBC pixel art, game sprite, centered'
+// Player sprite definitions by appearance (32x32 minimum required by API)
+// Each appearance is visually distinct at a glance
+const PLAYER_APPEARANCES = {
+  male: {
+    // MALE: Short hair, blue/teal cloak, broader shoulders
+    prompts: {
+      down: 'Male warrior facing forward, short spiky brown hair, teal blue cloak, broad shoulders, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character',
+      up: 'Male warrior back view, short spiky brown hair, teal blue cloak, broad shoulders, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character',
+      left: 'Male warrior facing left, short spiky brown hair, teal blue cloak, broad shoulders, side profile, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character',
+      right: 'Male warrior facing right, short spiky brown hair, teal blue cloak, broad shoulders, side profile, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character'
+    },
+    palette: ['#1a1a2e', '#4a3728', '#2b6cb0', '#4fd1c5'] // Dark, brown hair, blue, teal accent
   },
-  palette: ['#1a1a2e', '#4a3728', '#c53030', '#f6d5a8']
+  female: {
+    // FEMALE: Longer hair (ponytail), red/maroon cloak, smaller frame
+    prompts: {
+      down: 'Female warrior facing forward, long flowing auburn hair ponytail, deep red maroon cloak, slender frame, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character',
+      up: 'Female warrior back view, long flowing auburn hair ponytail visible, deep red maroon cloak, slender frame, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character',
+      left: 'Female warrior facing left, long flowing auburn hair ponytail, deep red maroon cloak, slender frame, side profile, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character',
+      right: 'Female warrior facing right, long flowing auburn hair ponytail, deep red maroon cloak, slender frame, side profile, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character'
+    },
+    palette: ['#1a1a2e', '#9b2c2c', '#c53030', '#feb2b2'] // Dark, maroon, red, light accent
+  },
+  other: {
+    // OTHER: Hooded (face obscured), purple/gray cloak, androgynous silhouette
+    prompts: {
+      down: 'Hooded mysterious figure facing forward, hood covering face partially shadowed, purple gray cloak, androgynous build, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character',
+      up: 'Hooded mysterious figure back view, large hood visible, purple gray cloak, androgynous build, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character',
+      left: 'Hooded mysterious figure facing left, hood covering face in shadow, purple gray cloak, androgynous build, side profile, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character',
+      right: 'Hooded mysterious figure facing right, hood covering face in shadow, purple gray cloak, androgynous build, side profile, simple 16x16 pixel art style, GBC game sprite, dark fantasy RPG character'
+    },
+    palette: ['#1a1a2e', '#4a5568', '#805ad5', '#b794f4'] // Dark, gray, purple, light purple accent
+  }
 };
+
+const PLAYER_DIRECTIONS = ['down', 'up', 'left', 'right'];
 
 // Output directories
 const OUTPUT_BASE = path.join(__dirname, '..', 'assets', 'sprites');
@@ -301,28 +326,40 @@ async function generateBossSprites() {
 async function generatePlayerSprites() {
   console.log('\n=== Generating Player Sprites ===\n');
 
-  ensureDir(PLAYER_DIR);
+  for (const [appearance, config] of Object.entries(PLAYER_APPEARANCES)) {
+    const appearanceDir = path.join(PLAYER_DIR, appearance);
+    ensureDir(appearanceDir);
 
-  for (const direction of PLAYER.directions) {
-    console.log(`Generating player ${direction}...`);
-    const sprite = await generateSprite(PLAYER.prompts[direction], PLAYER.palette, 32, 32);
+    console.log(`\nGenerating ${appearance} appearance sprites...`);
 
-    if (sprite) {
-      const spritePath = path.join(PLAYER_DIR, `${direction}.png`);
-      fs.writeFileSync(spritePath, sprite);
-      console.log(`  Saved: ${spritePath}`);
+    for (const direction of PLAYER_DIRECTIONS) {
+      console.log(`  Generating ${appearance} ${direction}...`);
+      const sprite = await generateSprite(config.prompts[direction], config.palette, 32, 32);
+
+      if (sprite) {
+        const spritePath = path.join(appearanceDir, `${direction}.png`);
+        fs.writeFileSync(spritePath, sprite);
+        console.log(`    Saved: ${spritePath}`);
+      }
+
+      await sleep(API_DELAY_MS);
     }
-
-    await sleep(API_DELAY_MS);
   }
 }
 
 async function main() {
+  const args = process.argv.slice(2);
+  const generateOnly = args[0]; // 'creatures', 'bosses', 'player', or undefined for all
+
   console.log('========================================');
   console.log('  Scars of Ash - Sprite Generator');
   console.log('========================================');
   console.log(`\nAPI Key: ${API_KEY.slice(0, 8)}...${API_KEY.slice(-4)}`);
-  console.log(`Output: ${OUTPUT_BASE}\n`);
+  console.log(`Output: ${OUTPUT_BASE}`);
+  if (generateOnly) {
+    console.log(`Mode: ${generateOnly} only`);
+  }
+  console.log('');
 
   // Ensure base output directories exist
   ensureDir(OUTPUT_BASE);
@@ -331,16 +368,19 @@ async function main() {
   ensureDir(PLAYER_DIR);
 
   const startTime = Date.now();
-  let successCount = 0;
-  let failCount = 0;
 
   try {
-    await generateCreatureSprites();
-    await generateBossSprites();
-    await generatePlayerSprites();
+    if (!generateOnly || generateOnly === 'creatures') {
+      await generateCreatureSprites();
+    }
+    if (!generateOnly || generateOnly === 'bosses') {
+      await generateBossSprites();
+    }
+    if (!generateOnly || generateOnly === 'player') {
+      await generatePlayerSprites();
+    }
   } catch (error) {
     console.error(`\nFatal error: ${error.message}`);
-    failCount++;
   }
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -356,4 +396,5 @@ async function main() {
   console.log('3. If sprites look wrong, adjust prompts and re-run');
 }
 
+// Usage: node scripts/generate-sprites.js [creatures|bosses|player]
 main().catch(console.error);

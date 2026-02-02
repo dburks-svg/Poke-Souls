@@ -1331,124 +1331,304 @@
 
     // ============= PIXEL ART SPRITES (CSS) =============
 
-    // Color palettes for different player appearances
+    // Color palettes for different player appearances - VISUALLY DISTINCT
     const PLAYER_PALETTES = {
       male: {
         skin: '#f6d5a8',
-        hair: '#4a3728',
-        shirt: '#3182ce',  // Blue shirt
+        hair: '#4a3728',        // Brown short hair
+        cloak: '#2b6cb0',       // Blue/teal cloak
+        cloakLight: '#4fd1c5',  // Teal accent
         pants: '#2d3748',
         outline: '#1a1a2e'
       },
       female: {
         skin: '#f6d5a8',
-        hair: '#6b3030',   // Reddish-brown hair
-        shirt: '#c53030',  // Red shirt
+        hair: '#9b2c2c',        // Auburn/reddish hair
+        cloak: '#c53030',       // Red/maroon cloak
+        cloakLight: '#feb2b2',  // Light red accent
         pants: '#2d3748',
         outline: '#1a1a2e'
       },
       other: {
-        skin: '#f6d5a8',
-        hair: '#4a3728',
-        shirt: '#c53030',  // Original red shirt
+        skin: '#4a5568',        // Shadowed face (hood)
+        hair: '#4a5568',        // Hood color (gray)
+        cloak: '#805ad5',       // Purple cloak
+        cloakLight: '#b794f4',  // Light purple accent
         pants: '#2d3748',
         outline: '#1a1a2e'
       }
     };
 
     // Player sprite facing different directions (16x16 scaled up) - SVG fallback version
+    // Each appearance has a distinct silhouette
     const FallbackPlayerSprite = ({ direction = 'down', appearance = 'other' }) => {
       const px = 3; // pixel size (3 = 48px total)
-
-      // Get colors from palette based on appearance
       const palette = PLAYER_PALETTES[appearance] || PLAYER_PALETTES.other;
-      const { skin, hair, shirt, pants, outline } = palette;
+      const { skin, hair, cloak, cloakLight, pants, outline } = palette;
 
-      const sprites = {
+      // MALE: Short hair, broader shoulders, blue/teal cloak
+      const maleSprites = {
         down: (
           <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
-            {/* Hair */}
-            <rect x={5*px} y={1*px} width={6*px} height={3*px} fill={hair}/>
-            <rect x={4*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
-            <rect x={11*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
+            {/* Short spiky hair */}
+            <rect x={5*px} y={1*px} width={6*px} height={2*px} fill={hair}/>
+            <rect x={4*px} y={2*px} width={1*px} height={1*px} fill={hair}/>
+            <rect x={11*px} y={2*px} width={1*px} height={1*px} fill={hair}/>
+            <rect x={6*px} y={0*px} width={1*px} height={1*px} fill={hair}/>
+            <rect x={9*px} y={0*px} width={1*px} height={1*px} fill={hair}/>
             {/* Face */}
-            <rect x={5*px} y={4*px} width={6*px} height={4*px} fill={skin}/>
+            <rect x={5*px} y={3*px} width={6*px} height={4*px} fill={skin}/>
             {/* Eyes */}
-            <rect x={6*px} y={5*px} width={1*px} height={2*px} fill={outline}/>
-            <rect x={9*px} y={5*px} width={1*px} height={2*px} fill={outline}/>
-            {/* Body/Shirt */}
-            <rect x={4*px} y={8*px} width={8*px} height={4*px} fill={shirt}/>
-            <rect x={3*px} y={8*px} width={1*px} height={3*px} fill={shirt}/>
-            <rect x={12*px} y={8*px} width={1*px} height={3*px} fill={shirt}/>
+            <rect x={6*px} y={4*px} width={1*px} height={2*px} fill={outline}/>
+            <rect x={9*px} y={4*px} width={1*px} height={2*px} fill={outline}/>
+            {/* Broad shoulders/cloak */}
+            <rect x={3*px} y={7*px} width={10*px} height={5*px} fill={cloak}/>
+            <rect x={2*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
+            <rect x={13*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
+            <rect x={7*px} y={8*px} width={2*px} height={2*px} fill={cloakLight}/>
             {/* Pants */}
             <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
             <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
             {/* Feet */}
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
           </svg>
         ),
         up: (
           <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
-            {/* Hair (back view) */}
-            <rect x={5*px} y={1*px} width={6*px} height={4*px} fill={hair}/>
-            <rect x={4*px} y={2*px} width={1*px} height={3*px} fill={hair}/>
-            <rect x={11*px} y={2*px} width={1*px} height={3*px} fill={hair}/>
+            {/* Short hair back */}
+            <rect x={5*px} y={1*px} width={6*px} height={3*px} fill={hair}/>
+            <rect x={4*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
+            <rect x={11*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
             {/* Neck */}
-            <rect x={6*px} y={5*px} width={4*px} height={3*px} fill={skin}/>
-            {/* Body/Shirt */}
-            <rect x={4*px} y={8*px} width={8*px} height={4*px} fill={shirt}/>
-            <rect x={3*px} y={8*px} width={1*px} height={3*px} fill={shirt}/>
-            <rect x={12*px} y={8*px} width={1*px} height={3*px} fill={shirt}/>
+            <rect x={6*px} y={4*px} width={4*px} height={3*px} fill={skin}/>
+            {/* Broad shoulders/cloak */}
+            <rect x={3*px} y={7*px} width={10*px} height={5*px} fill={cloak}/>
+            <rect x={2*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
+            <rect x={13*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
             {/* Pants */}
             <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
             <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
             {/* Feet */}
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
           </svg>
         ),
         left: (
           <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
-            {/* Hair */}
-            <rect x={6*px} y={1*px} width={5*px} height={3*px} fill={hair}/>
-            <rect x={5*px} y={2*px} width={1*px} height={3*px} fill={hair}/>
+            {/* Short hair */}
+            <rect x={6*px} y={1*px} width={4*px} height={2*px} fill={hair}/>
+            <rect x={5*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
+            <rect x={7*px} y={0*px} width={1*px} height={1*px} fill={hair}/>
             {/* Face */}
-            <rect x={6*px} y={4*px} width={4*px} height={4*px} fill={skin}/>
-            {/* Eye */}
-            <rect x={6*px} y={5*px} width={1*px} height={2*px} fill={outline}/>
-            {/* Body */}
-            <rect x={5*px} y={8*px} width={6*px} height={4*px} fill={shirt}/>
-            <rect x={4*px} y={9*px} width={1*px} height={2*px} fill={skin}/>
+            <rect x={5*px} y={3*px} width={4*px} height={4*px} fill={skin}/>
+            <rect x={5*px} y={4*px} width={1*px} height={2*px} fill={outline}/>
+            {/* Broad cloak */}
+            <rect x={4*px} y={7*px} width={7*px} height={5*px} fill={cloak}/>
+            <rect x={3*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
             {/* Pants */}
-            <rect x={6*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={6*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
-            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={8*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={8*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
           </svg>
         ),
         right: (
           <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
-            {/* Hair */}
-            <rect x={5*px} y={1*px} width={5*px} height={3*px} fill={hair}/>
-            <rect x={10*px} y={2*px} width={1*px} height={3*px} fill={hair}/>
+            {/* Short hair */}
+            <rect x={6*px} y={1*px} width={4*px} height={2*px} fill={hair}/>
+            <rect x={10*px} y={2*px} width={1*px} height={2*px} fill={hair}/>
+            <rect x={8*px} y={0*px} width={1*px} height={1*px} fill={hair}/>
             {/* Face */}
-            <rect x={6*px} y={4*px} width={4*px} height={4*px} fill={skin}/>
-            {/* Eye */}
-            <rect x={9*px} y={5*px} width={1*px} height={2*px} fill={outline}/>
-            {/* Body */}
-            <rect x={5*px} y={8*px} width={6*px} height={4*px} fill={shirt}/>
-            <rect x={11*px} y={9*px} width={1*px} height={2*px} fill={skin}/>
+            <rect x={7*px} y={3*px} width={4*px} height={4*px} fill={skin}/>
+            <rect x={10*px} y={4*px} width={1*px} height={2*px} fill={outline}/>
+            {/* Broad cloak */}
+            <rect x={5*px} y={7*px} width={7*px} height={5*px} fill={cloak}/>
+            <rect x={12*px} y={8*px} width={1*px} height={3*px} fill={cloak}/>
             {/* Pants */}
-            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={8*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
-            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
-            <rect x={8*px} y={15*px} width={2*px} height={1*px} fill={hair}/>
+            <rect x={6*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={6*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
           </svg>
         )
       };
 
-      return sprites[direction] || sprites.down;
+      // FEMALE: Long hair with ponytail, red/maroon cloak, slender frame
+      const femaleSprites = {
+        down: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Long hair with side strands */}
+            <rect x={5*px} y={1*px} width={6*px} height={3*px} fill={hair}/>
+            <rect x={4*px} y={2*px} width={1*px} height={5*px} fill={hair}/>
+            <rect x={11*px} y={2*px} width={1*px} height={5*px} fill={hair}/>
+            {/* Face */}
+            <rect x={5*px} y={4*px} width={6*px} height={4*px} fill={skin}/>
+            {/* Eyes */}
+            <rect x={6*px} y={5*px} width={1*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={5*px} width={1*px} height={1*px} fill={outline}/>
+            {/* Slender cloak */}
+            <rect x={4*px} y={8*px} width={8*px} height={4*px} fill={cloak}/>
+            <rect x={7*px} y={9*px} width={2*px} height={2*px} fill={cloakLight}/>
+            {/* Pants */}
+            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            {/* Feet */}
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+          </svg>
+        ),
+        up: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Long hair with ponytail */}
+            <rect x={5*px} y={1*px} width={6*px} height={4*px} fill={hair}/>
+            <rect x={4*px} y={2*px} width={1*px} height={4*px} fill={hair}/>
+            <rect x={11*px} y={2*px} width={1*px} height={4*px} fill={hair}/>
+            {/* Ponytail down back */}
+            <rect x={7*px} y={5*px} width={2*px} height={5*px} fill={hair}/>
+            <rect x={7*px} y={10*px} width={2*px} height={2*px} fill={hair}/>
+            {/* Slender cloak */}
+            <rect x={4*px} y={8*px} width={8*px} height={4*px} fill={cloak}/>
+            {/* Pants */}
+            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            {/* Feet */}
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+          </svg>
+        ),
+        left: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Long hair */}
+            <rect x={6*px} y={1*px} width={4*px} height={3*px} fill={hair}/>
+            <rect x={5*px} y={2*px} width={1*px} height={5*px} fill={hair}/>
+            {/* Ponytail behind */}
+            <rect x={10*px} y={3*px} width={2*px} height={2*px} fill={hair}/>
+            <rect x={11*px} y={5*px} width={2*px} height={4*px} fill={hair}/>
+            {/* Face */}
+            <rect x={6*px} y={4*px} width={4*px} height={4*px} fill={skin}/>
+            <rect x={6*px} y={5*px} width={1*px} height={1*px} fill={outline}/>
+            {/* Slender cloak */}
+            <rect x={5*px} y={8*px} width={6*px} height={4*px} fill={cloak}/>
+            {/* Pants */}
+            <rect x={6*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={9*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={6*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+          </svg>
+        ),
+        right: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Long hair */}
+            <rect x={6*px} y={1*px} width={4*px} height={3*px} fill={hair}/>
+            <rect x={10*px} y={2*px} width={1*px} height={5*px} fill={hair}/>
+            {/* Ponytail behind */}
+            <rect x={4*px} y={3*px} width={2*px} height={2*px} fill={hair}/>
+            <rect x={3*px} y={5*px} width={2*px} height={4*px} fill={hair}/>
+            {/* Face */}
+            <rect x={6*px} y={4*px} width={4*px} height={4*px} fill={skin}/>
+            <rect x={9*px} y={5*px} width={1*px} height={1*px} fill={outline}/>
+            {/* Slender cloak */}
+            <rect x={5*px} y={8*px} width={6*px} height={4*px} fill={cloak}/>
+            {/* Pants */}
+            <rect x={5*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={8*px} y={12*px} width={2*px} height={3*px} fill={pants}/>
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={8*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+          </svg>
+        )
+      };
+
+      // OTHER: Hooded figure, purple/gray cloak, face obscured
+      const otherSprites = {
+        down: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Hood */}
+            <rect x={4*px} y={0*px} width={8*px} height={3*px} fill={cloak}/>
+            <rect x={3*px} y={1*px} width={1*px} height={4*px} fill={cloak}/>
+            <rect x={12*px} y={1*px} width={1*px} height={4*px} fill={cloak}/>
+            <rect x={4*px} y={3*px} width={8*px} height={2*px} fill={cloak}/>
+            {/* Shadowed face */}
+            <rect x={5*px} y={5*px} width={6*px} height={3*px} fill={skin}/>
+            {/* Glowing eyes in shadow */}
+            <rect x={6*px} y={6*px} width={1*px} height={1*px} fill={cloakLight}/>
+            <rect x={9*px} y={6*px} width={1*px} height={1*px} fill={cloakLight}/>
+            {/* Cloak body */}
+            <rect x={3*px} y={8*px} width={10*px} height={5*px} fill={cloak}/>
+            <rect x={6*px} y={9*px} width={4*px} height={2*px} fill={cloakLight}/>
+            {/* Legs peek out */}
+            <rect x={5*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            <rect x={9*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            {/* Feet */}
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+          </svg>
+        ),
+        up: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Hood back */}
+            <rect x={4*px} y={0*px} width={8*px} height={5*px} fill={cloak}/>
+            <rect x={3*px} y={1*px} width={1*px} height={5*px} fill={cloak}/>
+            <rect x={12*px} y={1*px} width={1*px} height={5*px} fill={cloak}/>
+            {/* Hood interior visible */}
+            <rect x={5*px} y={2*px} width={6*px} height={3*px} fill={hair}/>
+            {/* Cloak body */}
+            <rect x={3*px} y={6*px} width={10*px} height={7*px} fill={cloak}/>
+            <rect x={6*px} y={8*px} width={4*px} height={3*px} fill={cloakLight}/>
+            {/* Legs peek out */}
+            <rect x={5*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            <rect x={9*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            {/* Feet */}
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+          </svg>
+        ),
+        left: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Hood side */}
+            <rect x={5*px} y={0*px} width={6*px} height={4*px} fill={cloak}/>
+            <rect x={4*px} y={1*px} width={1*px} height={5*px} fill={cloak}/>
+            <rect x={11*px} y={2*px} width={1*px} height={3*px} fill={cloak}/>
+            {/* Shadowed face peek */}
+            <rect x={5*px} y={4*px} width={3*px} height={3*px} fill={skin}/>
+            <rect x={5*px} y={5*px} width={1*px} height={1*px} fill={cloakLight}/>
+            {/* Cloak body */}
+            <rect x={4*px} y={7*px} width={7*px} height={6*px} fill={cloak}/>
+            <rect x={6*px} y={9*px} width={3*px} height={2*px} fill={cloakLight}/>
+            {/* Legs */}
+            <rect x={5*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            <rect x={8*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            <rect x={5*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={8*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+          </svg>
+        ),
+        right: (
+          <svg width={16*px} height={16*px} style={{ imageRendering: 'pixelated' }}>
+            {/* Hood side */}
+            <rect x={5*px} y={0*px} width={6*px} height={4*px} fill={cloak}/>
+            <rect x={4*px} y={2*px} width={1*px} height={3*px} fill={cloak}/>
+            <rect x={11*px} y={1*px} width={1*px} height={5*px} fill={cloak}/>
+            {/* Shadowed face peek */}
+            <rect x={8*px} y={4*px} width={3*px} height={3*px} fill={skin}/>
+            <rect x={10*px} y={5*px} width={1*px} height={1*px} fill={cloakLight}/>
+            {/* Cloak body */}
+            <rect x={5*px} y={7*px} width={7*px} height={6*px} fill={cloak}/>
+            <rect x={7*px} y={9*px} width={3*px} height={2*px} fill={cloakLight}/>
+            {/* Legs */}
+            <rect x={6*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            <rect x={9*px} y={13*px} width={2*px} height={2*px} fill={pants}/>
+            <rect x={6*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+            <rect x={9*px} y={15*px} width={2*px} height={1*px} fill={outline}/>
+          </svg>
+        )
+      };
+
+      // Select sprite set based on appearance
+      const spriteSet = appearance === 'male' ? maleSprites :
+                        appearance === 'female' ? femaleSprites :
+                        otherSprites;
+
+      return spriteSet[direction] || spriteSet.down;
     };
 
     // Main player sprite component - uses PNG if available, falls back to SVG
