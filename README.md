@@ -66,6 +66,12 @@ Procedural chiptune effects powered by Tone.js:
 ### Creature Nicknames
 After capturing a creature, you can give it a nickname. Names appear in battle logs and menus, making the experience more personal.
 
+### Team Management (No Storage, No Mercy)
+- **5 creature maximum** - Your active team is your only team
+- **Full team capture** - Must release one creature permanently to make room
+- **No take-backs** - Released creatures are gone. Like your 401k in 2008.
+- **Let it escape** - Can't choose? The new capture flees. Souls wasted. Classic.
+
 ### Pre-Battle Preview
 When encountering wild creatures in grass:
 - See the creature's type before engaging
@@ -242,7 +248,7 @@ Every move costs stamina. Manage it carefully:
 Capture wild creatures to build your team:
 
 - **Cost**: 20 souls per attempt
-- **Max Team Size**: 3 creatures
+- **Max Team Size**: 5 creatures
 - **Capture Chance** (based on enemy HP):
   - Below 10% HP: 90% chance
   - Below 25% HP: 60% chance
@@ -253,6 +259,20 @@ Capture wild creatures to build your team:
 - **On Failure**: Lose the souls, enemy attacks
 
 Wild creatures have stat variance (+/- 5 HP, +/- 2 stamina) and a 10% chance to already have a scar. Deep creatures have +5 HP, +2 Stamina base and 20% pre-scar chance.
+
+### The Release Mechanic (Sophie's Choice, Monster Edition)
+
+Your team maxes out at 5 creatures. No storage. No PC boxes. No "I'll come back for you later." This isn't a daycare.
+
+When you capture a creature with a full team:
+
+- **Release Screen**: Choose which creature to release *forever*
+- **Confirmation**: "Release [Name] forever? They will not return."
+- **Let It Escape**: Can't decide? The new capture escapes. Souls already spent. Thanks for playing.
+
+There's no storage system. Your active team IS your only team. When that Marshveil with three scars stares at you from the release screen, remember: you did this. Every scar. Every choice. Every goodbye.
+
+*"This is a game that breaks you."* — We meant it.
 
 ### Scarring System
 
@@ -432,15 +452,16 @@ Inspired by classic handheld era games:
 3. **Watch stamina** - Being Winded makes you vulnerable
 4. **Weaken before binding** - Low HP means high capture chance
 5. **Guard the big hits** - Half damage can save your creature
-6. **Build a balanced team** - Cover your type weaknesses
+6. **Build a balanced team** - Cover your type weaknesses (you've got 5 slots, use them)
 7. **Scars are forever** - Sometimes running is the right call
 8. **Examine everything** - The world has stories to tell
 9. **Save at bonfires** - Auto-save protects your progress
 10. **Choose your difficulty** - No shame in Ashen mode
 11. **Check the type preview** - You can flee encounters once
 12. **Use keyboard shortcuts** - 1-4 for moves, B for bind
-13. **Name your creatures** - Makes the journey more personal
+13. **Name your creatures** - Makes the goodbye harder. You're welcome.
 14. **Explore The Hollow Deep** - Dark/Light types await post-game
+15. **Think before you capture** - Full team means someone's getting voted off the island
 
 ## Credits
 
