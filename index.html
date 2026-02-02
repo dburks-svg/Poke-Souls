@@ -968,17 +968,31 @@
         }
       },
       player: {
-        down: 'assets/sprites/player/down.png',
-        up: 'assets/sprites/player/up.png',
-        left: 'assets/sprites/player/left.png',
-        right: 'assets/sprites/player/right.png'
+        male: {
+          down: 'assets/sprites/player/male/down.png',
+          up: 'assets/sprites/player/male/up.png',
+          left: 'assets/sprites/player/male/left.png',
+          right: 'assets/sprites/player/male/right.png'
+        },
+        female: {
+          down: 'assets/sprites/player/female/down.png',
+          up: 'assets/sprites/player/female/up.png',
+          left: 'assets/sprites/player/female/left.png',
+          right: 'assets/sprites/player/female/right.png'
+        },
+        other: {
+          down: 'assets/sprites/player/other/down.png',
+          up: 'assets/sprites/player/other/up.png',
+          left: 'assets/sprites/player/other/left.png',
+          right: 'assets/sprites/player/other/right.png'
+        }
       }
     };
 
     // Cache for preloaded sprite images
     const preloadedSprites = {
       creatures: {},
-      player: {},
+      player: { male: {}, female: {}, other: {} },
       loaded: false
     };
 
@@ -1008,13 +1022,16 @@
           });
         });
 
-        // Load player sprites
-        Object.entries(SPRITE_MANIFEST.player).forEach(([direction, src]) => {
-          promises.push(
-            loadImage(src).then(result => {
-              preloadedSprites.player[direction] = result.loaded ? result.img : null;
-            })
-          );
+        // Load player sprites (by appearance then direction)
+        Object.entries(SPRITE_MANIFEST.player).forEach(([appearance, directions]) => {
+          preloadedSprites.player[appearance] = {};
+          Object.entries(directions).forEach(([direction, src]) => {
+            promises.push(
+              loadImage(src).then(result => {
+                preloadedSprites.player[appearance][direction] = result.loaded ? result.img : null;
+              })
+            );
+          });
         });
 
         Promise.all(promises).then(() => {
@@ -1023,8 +1040,8 @@
             creatures: Object.keys(preloadedSprites.creatures).filter(t =>
               Object.values(preloadedSprites.creatures[t]).some(v => v !== null)
             ),
-            player: Object.keys(preloadedSprites.player).filter(d =>
-              preloadedSprites.player[d] !== null
+            player: Object.keys(preloadedSprites.player).filter(appearance =>
+              Object.values(preloadedSprites.player[appearance] || {}).some(v => v !== null)
             )
           });
           resolve();
@@ -1039,8 +1056,9 @@
                preloadedSprites.creatures[type]?.[variant] !== undefined;
       }
       if (category === 'player') {
-        return preloadedSprites.player[type] !== null &&
-               preloadedSprites.player[type] !== undefined;
+        // type = appearance, variant = direction
+        return preloadedSprites.player[type]?.[variant] !== null &&
+               preloadedSprites.player[type]?.[variant] !== undefined;
       }
       return false;
     };
@@ -1313,16 +1331,38 @@
 
     // ============= PIXEL ART SPRITES (CSS) =============
 
+    // Color palettes for different player appearances
+    const PLAYER_PALETTES = {
+      male: {
+        skin: '#f6d5a8',
+        hair: '#4a3728',
+        shirt: '#3182ce',  // Blue shirt
+        pants: '#2d3748',
+        outline: '#1a1a2e'
+      },
+      female: {
+        skin: '#f6d5a8',
+        hair: '#6b3030',   // Reddish-brown hair
+        shirt: '#c53030',  // Red shirt
+        pants: '#2d3748',
+        outline: '#1a1a2e'
+      },
+      other: {
+        skin: '#f6d5a8',
+        hair: '#4a3728',
+        shirt: '#c53030',  // Original red shirt
+        pants: '#2d3748',
+        outline: '#1a1a2e'
+      }
+    };
+
     // Player sprite facing different directions (16x16 scaled up) - SVG fallback version
-    const FallbackPlayerSprite = ({ direction = 'down' }) => {
+    const FallbackPlayerSprite = ({ direction = 'down', appearance = 'other' }) => {
       const px = 3; // pixel size (3 = 48px total)
 
-      // Base colors
-      const skin = '#f6d5a8';
-      const hair = '#4a3728';
-      const shirt = '#c53030';
-      const pants = '#2d3748';
-      const outline = '#1a1a2e';
+      // Get colors from palette based on appearance
+      const palette = PLAYER_PALETTES[appearance] || PLAYER_PALETTES.other;
+      const { skin, hair, shirt, pants, outline } = palette;
 
       const sprites = {
         down: (
@@ -1412,15 +1452,15 @@
     };
 
     // Main player sprite component - uses PNG if available, falls back to SVG
-    const PlayerSprite = ({ direction = 'down' }) => {
-      const spriteImg = preloadedSprites.player[direction];
+    const PlayerSprite = ({ direction = 'down', appearance = 'other' }) => {
+      const spriteImg = preloadedSprites.player[appearance]?.[direction];
 
       // If PNG sprite is available, render it
       if (spriteImg) {
         return (
           <img
             src={spriteImg.src}
-            alt={`player-${direction}`}
+            alt={`player-${appearance}-${direction}`}
             width={48}
             height={48}
             style={{
@@ -1431,7 +1471,7 @@
       }
 
       // Fall back to SVG sprite
-      return <FallbackPlayerSprite direction={direction} />;
+      return <FallbackPlayerSprite direction={direction} appearance={appearance} />;
     };
 
     // Creature sprites - SVG fallback version
@@ -2874,7 +2914,7 @@
         '"So. One finally passes."',
         '"Beyond this door... another keeper waits. Another path. Another fire."',
         '"The cycle doesn\'t end. It never ends."',
-        '"But you... you carry scars and still stand."',
+        '"But you, {name}... you carry scars and still stand."',
         '"Perhaps that is enough."'
       ]
     };
@@ -2993,6 +3033,8 @@
         currentMap: state.currentMap,
         playerPos: state.playerPos,
         playerDir: state.playerDir,
+        playerName: state.playerName,
+        playerAppearance: state.playerAppearance,
         team: state.team,
         activeCreatureIndex: state.activeCreatureIndex,
         souls: state.souls,
@@ -3134,6 +3176,67 @@
       saveStats(stats);
     };
 
+    // Ghost marker storage (last death location)
+    const GHOST_KEY = 'scarsOfAshLastDeath';
+
+    const loadGhost = () => {
+      try {
+        const data = localStorage.getItem(GHOST_KEY);
+        if (data) return JSON.parse(data);
+      } catch (e) {}
+      return null;
+    };
+
+    const saveGhost = (ghostData) => {
+      try {
+        localStorage.setItem(GHOST_KEY, JSON.stringify(ghostData));
+      } catch (e) {}
+    };
+
+    const recordGhost = (state) => {
+      const difficulty = getDifficulty(state);
+      if (difficulty.permadeath) return; // Don't record on permadeath
+      saveGhost({
+        name: state.playerName,
+        map: state.currentMap,
+        pos: { ...state.playerPos },
+        appearance: state.playerAppearance
+      });
+    };
+
+    // Hall of the Fallen storage (permadeath memorial)
+    const FALLEN_KEY = 'scarsOfAshFallenMemorial';
+
+    const loadFallen = () => {
+      try {
+        const data = localStorage.getItem(FALLEN_KEY);
+        if (data) return JSON.parse(data);
+      } catch (e) {}
+      return [];
+    };
+
+    const saveFallen = (fallen) => {
+      try {
+        localStorage.setItem(FALLEN_KEY, JSON.stringify(fallen));
+      } catch (e) {}
+    };
+
+    const recordFallen = (state) => {
+      if (state.difficulty !== 'broken') return; // Only Broken difficulty
+
+      const fallen = loadFallen();
+      fallen.unshift({
+        id: Date.now(),
+        playerName: state.playerName,
+        playerAppearance: state.playerAppearance,
+        playTime: state.playTime,
+        finalMap: state.currentMap,
+        totalScars: state.team.reduce((sum, c) => sum + (c.scars?.length || 0), 0),
+        team: state.team.map(c => ({ name: c.nickname || c.name, scars: c.scars?.length || 0 }))
+      });
+      saveFallen(fallen.slice(0, 20)); // Keep last 20
+    };
+
     const formatPlayTime = (ms) => {
       const totalSeconds = Math.floor(ms / 1000);
       const hours = Math.floor(totalSeconds / 3600);
@@ -3146,8 +3249,10 @@
     };
 
     const initialState = {
-      screen: 'difficulty',
+      screen: 'characterCreate',
       difficulty: 'scarred',
+      playerName: '',
+      playerAppearance: '',
       currentMap: 'ashenPath',
       playerPos: { x: 4, y: 1 },
       playerDir: 'down',
@@ -3262,6 +3367,16 @@
 
     function gameReducer(state, action) {
       switch (action.type) {
+        case 'CREATE_CHARACTER': {
+          if (!action.name || !action.appearance) return state;
+          return {
+            ...state,
+            playerName: action.name.trim(),
+            playerAppearance: action.appearance,
+            screen: 'difficulty'
+          };
+        }
+
         case 'SELECT_DIFFICULTY': {
           return {
             ...state,
@@ -3879,7 +3994,9 @@
             }
 
             // Team has room - go straight to nickname
-            log.push(`${capturedCreature.name} joined your disaster.`);
+            log.push(state.playerName
+              ? `${capturedCreature.name} answered ${state.playerName}'s call!`
+              : `${capturedCreature.name} answered your call!`);
             return {
               ...state,
               screen: 'nickname',
@@ -3890,7 +4007,12 @@
             };
           } else {
             // FAILED - enemy gets a free attack
-            log.push("They said no. Respect boundaries.");
+            const failMessages = [
+              "They said no. Respect boundaries.",
+              state.playerName ? `${state.playerName}'s call went unanswered.` : "Your call went unanswered.",
+              "The binding failed. They resist."
+            ];
+            log.push(failMessages[Math.floor(Math.random() * failMessages.length)]);
 
             // Enemy retaliates
             return {
@@ -4284,6 +4406,8 @@
             ...initialState,
             screen: 'exploration',
             difficulty: saveData.difficulty || 'scarred',
+            playerName: saveData.playerName || 'Ashen One',
+            playerAppearance: saveData.playerAppearance || 'other',
             currentMap: saveData.currentMap,
             playerPos: saveData.playerPos,
             playerDir: saveData.playerDir,
@@ -4360,7 +4484,7 @@
       }
     }
 
-    function DifficultySelect({ dispatch, onShowStats }) {
+    function DifficultySelect({ dispatch, onShowStats, onShowFallen }) {
       const difficultyInfo = {
         ashen: [
           '• Wild damage reduced 50%',
@@ -4421,16 +4545,28 @@
             </div>
           ))}
 
-          <button
-            style={{
-              ...styles.button,
-              marginTop: 'var(--spacing-lg)',
-              padding: 'var(--spacing-sm) var(--spacing-xl)'
-            }}
-            onClick={onShowStats}
-          >
-            STATS
-          </button>
+          <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'center', marginTop: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+            <button
+              style={{
+                ...styles.button,
+                padding: 'var(--spacing-sm) var(--spacing-xl)'
+              }}
+              onClick={onShowStats}
+            >
+              STATS
+            </button>
+            <button
+              style={{
+                ...styles.button,
+                padding: 'var(--spacing-sm) var(--spacing-xl)',
+                borderColor: GBC.red,
+                color: GBC.red
+              }}
+              onClick={onShowFallen}
+            >
+              MEMORIAL
+            </button>
+          </div>
         </div>
       );
     }
@@ -4441,6 +4577,142 @@
         <div style={styles.difficultyIndicator}>
           <span>{diff.icon}</span>
           <span style={styles.difficultyIndicatorName}>{diff.name}</span>
+        </div>
+      );
+    }
+
+    function CharacterCreate({ dispatch }) {
+      const [name, setName] = useState('');
+      const [appearance, setAppearance] = useState('');
+
+      const isValid = name.trim().length > 0 && appearance;
+
+      const appearances = [
+        { id: 'male', label: 'MALE' },
+        { id: 'female', label: 'FEMALE' },
+        { id: 'other', label: 'OTHER' }
+      ];
+
+      return (
+        <div style={{
+          textAlign: 'center',
+          padding: 'var(--spacing-lg)',
+          maxWidth: '400px',
+          margin: '0 auto'
+        }}>
+          <h1 style={{ color: GBC.textDim, marginBottom: 'var(--spacing-xs)', fontSize: 'var(--font-2xl)' }}>
+            SCARS OF ASH
+          </h1>
+          <div style={{ color: GBC.gold, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-xl)', fontStyle: 'italic' }}>
+            "The flame remembers."
+          </div>
+
+          <div style={{
+            color: GBC.textDim,
+            fontSize: 'var(--font-lg)',
+            marginBottom: 'var(--spacing-lg)',
+            letterSpacing: '2px'
+          }}>
+            WHO ARE YOU?
+          </div>
+
+          {/* Name input */}
+          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 12))}
+              placeholder="Enter your name"
+              maxLength={12}
+              style={{
+                width: '100%',
+                maxWidth: '280px',
+                padding: 'var(--spacing-md)',
+                backgroundColor: GBC.bgPanel,
+                border: `3px solid ${GBC.border}`,
+                color: GBC.text,
+                fontFamily: '"Press Start 2P", monospace',
+                fontSize: 'var(--font-sm)',
+                textAlign: 'center',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+              onFocus={(e) => e.target.style.borderColor = GBC.gold}
+              onBlur={(e) => e.target.style.borderColor = GBC.border}
+            />
+            <div style={{
+              color: GBC.textDim,
+              fontSize: 'var(--font-xs)',
+              marginTop: 'var(--spacing-xs)'
+            }}>
+              {name.length}/12
+            </div>
+          </div>
+
+          {/* Appearance selection */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 'var(--spacing-md)',
+            marginBottom: 'var(--spacing-xl)',
+            flexWrap: 'wrap'
+          }}>
+            {appearances.map(opt => (
+              <div
+                key={opt.id}
+                onClick={() => setAppearance(opt.id)}
+                style={{
+                  padding: 'var(--spacing-md)',
+                  backgroundColor: GBC.bgPanel,
+                  border: `3px solid ${appearance === opt.id ? GBC.gold : GBC.border}`,
+                  cursor: 'pointer',
+                  minWidth: '80px',
+                  transition: 'border-color 0.2s'
+                }}
+                onMouseOver={e => { if (appearance !== opt.id) e.currentTarget.style.borderColor = GBC.textDim; }}
+                onMouseOut={e => { if (appearance !== opt.id) e.currentTarget.style.borderColor = GBC.border; }}
+              >
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  marginBottom: 'var(--spacing-sm)'
+                }}>
+                  <FallbackPlayerSprite direction="down" appearance={opt.id} />
+                </div>
+                <div style={{
+                  color: appearance === opt.id ? GBC.gold : GBC.text,
+                  fontSize: 'var(--font-xs)'
+                }}>
+                  {opt.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Begin button */}
+          <button
+            disabled={!isValid}
+            onClick={() => dispatch({ type: 'CREATE_CHARACTER', name, appearance })}
+            style={{
+              ...styles.button,
+              padding: 'var(--spacing-md) var(--spacing-xl)',
+              fontSize: 'var(--font-base)',
+              opacity: isValid ? 1 : 0.5,
+              cursor: isValid ? 'pointer' : 'not-allowed'
+            }}
+          >
+            BEGIN
+          </button>
+
+          {!isValid && (
+            <div style={{
+              color: GBC.textDim,
+              fontSize: 'var(--font-xs)',
+              marginTop: 'var(--spacing-md)'
+            }}>
+              Enter a name and choose your appearance
+            </div>
+          )}
         </div>
       );
     }
@@ -4486,6 +4758,7 @@
     function Exploration({ state, dispatch }) {
       const map = state.currentMap === 'ashenPath' ? ASHEN_PATH : state.currentMap === 'hollowDeep' ? HOLLOW_DEEP : FALLEN_KEEP;
       const mapName = state.currentMap === 'ashenPath' ? 'Ashen Path' : state.currentMap === 'hollowDeep' ? 'The Hollow Deep' : 'Fallen Keep';
+      const ghost = loadGhost(); // Load once for ghost marker display
 
       const handleKeyDown = useCallback((e) => {
         const key = e.key.toLowerCase();
@@ -4588,7 +4861,10 @@
             onClick={() => isTouchDevice() && window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}
           >
             <span style={styles.souls}>CARRIED {state.souls} | BANKED {state.bankedSouls}</span>
-            <span style={{ color: GBC.textDim }}>{mapName}</span>
+            <span style={{ color: GBC.textDim, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+              <span style={{ fontSize: 'var(--font-xs)', color: GBC.gold }}>{state.playerName || 'Ashen One'}</span>
+              <span>{mapName}</span>
+            </span>
             <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM {state.team.length}/{MAX_TEAM_SIZE}</span>
           </div>
 
@@ -4623,7 +4899,7 @@
                       {renderTileBackground(tile)}
                       {isPlayer && (
                         <div style={{ position: 'absolute', zIndex: 10 }}>
-                          <PlayerSprite direction={state.playerDir} />
+                          <PlayerSprite direction={state.playerDir} appearance={state.playerAppearance || 'other'} />
                         </div>
                       )}
                       {hasSouls && !isPlayer && (
@@ -4650,6 +4926,30 @@
                             marginTop: '2px',
                             textShadow: '1px 1px 0 #000'
                           }}>SOULS</div>
+                        </div>
+                      )}
+                      {ghost && ghost.map === state.currentMap &&
+                        ghost.pos.x === x && ghost.pos.y === y &&
+                        ghost.name && ghost.name !== state.playerName && !isPlayer && (
+                        <div style={{
+                          position: 'absolute',
+                          zIndex: 4,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.5
+                        }}>
+                          <div style={{ transform: 'scale(0.6)', transformOrigin: 'center', filter: 'grayscale(100%)' }}>
+                            <FallbackPlayerSprite direction="down" appearance={ghost.appearance || 'other'} />
+                          </div>
+                          <div style={{
+                            fontSize: '6px',
+                            color: GBC.textDim,
+                            fontFamily: '"Press Start 2P", monospace',
+                            textShadow: '1px 1px 0 #000',
+                            marginTop: '-4px'
+                          }}>{ghost.name}...</div>
                         </div>
                       )}
                     </div>
@@ -5403,7 +5703,7 @@
                 : 'The Obsidian Hound collapses. Varek speaks one last time:'}
             </div>
             {(isHollowWarden ? HOLLOW_WARDEN_DIALOGUE.victory : BOSS_DIALOGUE.victory).map((line, i) => (
-              <div key={i} style={styles.victoryDialogue}>{line}</div>
+              <div key={i} style={styles.victoryDialogue}>{line.replace('{name}', state.playerName || 'Ashen One')}</div>
             ))}
           </div>
 
@@ -5421,7 +5721,7 @@
           </div>
 
           <div style={styles.victoryTitle}>
-            {isHollowWarden ? 'THE HOLLOW DEEP - CLEARED' : 'YOU SURVIVED'}
+            {isHollowWarden ? 'THE HOLLOW DEEP - CLEARED' : `${(state.playerName || 'ASHEN ONE').toUpperCase()} SURVIVED`}
           </div>
 
           <div style={{ margin: 'var(--spacing-lg) 0', textAlign: 'left', display: 'inline-block' }}>
@@ -5467,23 +5767,28 @@
       const difficulty = getDifficulty(state);
       const isPermadeath = difficulty.permadeath;
 
-      // Play death sound and delete save on permadeath
+      // Play death sound, record ghost/fallen, and delete save on permadeath
       useEffect(() => {
         playSfx('death');
         if (isPermadeath) {
+          recordFallen(state);
           deleteSaveData();
+        } else {
+          recordGhost(state);
         }
       }, [isPermadeath]);
+
+      const playerName = state.playerName || 'Ashen One';
 
       return (
         <div style={styles.gameOver}>
           <div style={{ fontSize: 'var(--font-lg)', color: GBC.red, marginBottom: 'var(--spacing-lg)' }}>
             {(() => {
               const deathMessages = [
-                "You died. Again.",
+                `${playerName} died. Again.`,
                 "That went well.",
                 "The flame remembers. Unfortunately.",
-                "Your creatures believed in you. That was their mistake.",
+                `${playerName}'s creatures believed in them. That was their mistake.`,
                 "Scars build character. You have plenty now."
               ];
               return deathMessages[Math.floor(Math.random() * deathMessages.length)];
@@ -5532,7 +5837,17 @@
       );
     }
 
-    function Prologue({ dispatch }) {
+    function Prologue({ dispatch, state }) {
+      const getAppearanceLine = (appearance) => {
+        switch(appearance) {
+          case 'male':
+          case 'female':
+            return "A warrior's path lies ahead.";
+          default:
+            return 'Your path is your own to forge.';
+        }
+      };
+
       const prologueLines = [
         { text: 'The bonfire wars ended long ago.', highlight: false },
         { text: '', highlight: false },
@@ -5546,7 +5861,9 @@
         { text: '', highlight: false },
         { text: 'You will not be the last.', highlight: false },
         { text: '', highlight: false },
-        { text: 'But perhaps you will be the one who endures.', highlight: true }
+        { text: 'But perhaps you will be the one who endures.', highlight: true },
+        { text: '', highlight: false },
+        { text: getAppearanceLine(state?.playerAppearance), highlight: true }
       ];
 
       return (
@@ -6079,6 +6396,73 @@
       );
     }
 
+    function HallOfFallen({ onClose }) {
+      const fallen = loadFallen();
+      const mapNames = {
+        ashenPath: 'Ashen Path',
+        fallenKeep: 'Fallen Keep',
+        hollowDeep: 'The Hollow Deep'
+      };
+
+      return (
+        <div style={{
+          ...styles.starterSelect,
+          minHeight: 'clamp(400px, 70vh, 700px)',
+          overflowY: 'auto'
+        }}>
+          <h1 style={{ color: GBC.red, marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-xl)' }}>
+            HALL OF THE FALLEN
+          </h1>
+          <div style={{ color: GBC.gold, fontSize: 'var(--font-xs)', fontStyle: 'italic', marginBottom: 'var(--spacing-lg)' }}>
+            The flame remembers those who burned brightest.
+          </div>
+
+          {fallen.length === 0 ? (
+            <div style={{ color: GBC.textDim, fontSize: 'var(--font-sm)', marginBottom: 'var(--spacing-lg)' }}>
+              No souls have fallen on the Broken path... yet.
+            </div>
+          ) : (
+            <div style={{ width: '100%', maxWidth: '400px' }}>
+              {fallen.map(entry => (
+                <div key={entry.id} style={{
+                  backgroundColor: GBC.bgPanel,
+                  border: `2px solid ${GBC.border}`,
+                  padding: 'var(--spacing-sm)',
+                  marginBottom: 'var(--spacing-sm)',
+                  textAlign: 'left'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-xs)' }}>
+                    <div style={{ width: '24px', height: '24px', overflow: 'hidden', flexShrink: 0 }}>
+                      <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left' }}>
+                        <FallbackPlayerSprite direction="down" appearance={entry.playerAppearance || 'other'} />
+                      </div>
+                    </div>
+                    <div style={{ color: GBC.red, fontSize: 'var(--font-sm)' }}>{entry.playerName}</div>
+                  </div>
+                  <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: '2px' }}>
+                    Fell at: {mapNames[entry.finalMap] || entry.finalMap}
+                  </div>
+                  <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: '2px' }}>
+                    Time: {formatPlayTime(entry.playTime || 0)} | Scars: {entry.totalScars}
+                  </div>
+                  <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)' }}>
+                    Team: {(entry.team || []).map(c => c.name).join(', ') || 'Unknown'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            style={styles.button}
+            onClick={onClose}
+          >
+            BACK
+          </button>
+        </div>
+      );
+    }
+
     function MuteButton({ muted, onToggle }) {
       return (
         <button
@@ -6150,10 +6534,19 @@
       const mapName = saveData.currentMap === 'ashenPath' ? 'Ashen Path' : saveData.currentMap === 'hollowDeep' ? 'The Hollow Deep' : 'Fallen Keep';
       const diff = DIFFICULTIES[saveData.difficulty] || DIFFICULTIES.scarred;
 
+      const playerName = saveData.playerName || 'Ashen One';
+
       return (
         <div style={styles.saveSlot}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-sm)' }}>
-            <div style={styles.saveSlotTitle}>SAVED JOURNEY</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+              <div style={{ width: '16px', height: '16px', overflow: 'hidden' }}>
+                <div style={{ transform: 'scale(0.333)', transformOrigin: 'top left' }}>
+                  <FallbackPlayerSprite direction="down" appearance={saveData.playerAppearance || 'other'} />
+                </div>
+              </div>
+              <div style={styles.saveSlotTitle}>{playerName.toUpperCase()}'S JOURNEY</div>
+            </div>
             <div style={{ fontSize: 'var(--font-base)' }}>
               {diff.icon} <span style={{ fontSize: 'var(--font-xs)', color: GBC.textDim }}>{diff.name}</span>
             </div>
@@ -6182,11 +6575,38 @@
       );
     }
 
-    function PauseMenu({ onResume, onSave, onLoad, onNewGame, onHelp, hasSave }) {
+    function PauseMenu({ onResume, onSave, onLoad, onNewGame, onHelp, hasSave, state }) {
       return (
         <div style={styles.pauseOverlay}>
           <div style={styles.pauseMenu}>
             <div style={styles.pauseTitle}>PAUSED</div>
+
+            {state && (
+              <div style={{
+                marginBottom: 'var(--spacing-md)',
+                padding: 'var(--spacing-sm)',
+                backgroundColor: GBC.bgPanel,
+                border: `2px solid ${GBC.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--spacing-sm)'
+              }}>
+                <div style={{ width: '24px', height: '24px', overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left' }}>
+                    <FallbackPlayerSprite direction="down" appearance={state.playerAppearance || 'other'} />
+                  </div>
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ color: GBC.text, fontSize: 'var(--font-xs)' }}>{state.playerName || 'Ashen One'}</div>
+                  <div style={{ color: GBC.gold, fontSize: 'var(--font-xs)' }}>
+                    {state.souls}/{state.bankedSouls} souls
+                  </div>
+                  <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)' }}>
+                    {state.team.length} creature{state.team.length !== 1 ? 's' : ''} | {state.team.reduce((sum, c) => sum + (c.scars?.length || 0), 0)} scar{state.team.reduce((sum, c) => sum + (c.scars?.length || 0), 0) !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div
               style={styles.pauseOption}
@@ -6431,6 +6851,7 @@
       const [showHelp, setShowHelp] = useState(false);
       const [showPauseMenu, setShowPauseMenu] = useState(false);
       const [showStats, setShowStats] = useState(false);
+      const [showFallen, setShowFallen] = useState(false);
       const [confirmDialog, setConfirmDialog] = useState(null);
       const [checkingSave, setCheckingSave] = useState(true);
       const [existingSave, setExistingSave] = useState(null);
@@ -6690,8 +7111,8 @@
         );
       }
 
-      // Show load screen if save exists and we're at starter screen
-      if (existingSave && state.screen === 'difficulty') {
+      // Show load screen if save exists and we're at character creation or difficulty screen
+      if (existingSave && (state.screen === 'characterCreate' || state.screen === 'difficulty')) {
         return (
           <div style={styles.container}>
             <LoadScreen
@@ -6730,6 +7151,7 @@
               onNewGame={handleNewGameRequest}
               onHelp={handleHelpFromPause}
               hasSave={hasSave}
+              state={state}
             />
           )}
 
@@ -6753,17 +7175,23 @@
             <DifficultyIndicator difficulty={state.difficulty} />
           )}
 
-          {state.screen === 'difficulty' && !showStats && (
-            <DifficultySelect dispatch={dispatch} onShowStats={() => setShowStats(true)} />
+          {state.screen === 'characterCreate' && (
+            <CharacterCreate dispatch={dispatch} />
+          )}
+          {state.screen === 'difficulty' && !showStats && !showFallen && (
+            <DifficultySelect dispatch={dispatch} onShowStats={() => setShowStats(true)} onShowFallen={() => setShowFallen(true)} />
           )}
           {state.screen === 'difficulty' && showStats && (
             <StatsScreen onClose={() => setShowStats(false)} />
+          )}
+          {state.screen === 'difficulty' && showFallen && (
+            <HallOfFallen onClose={() => setShowFallen(false)} />
           )}
           {state.screen === 'starter' && (
             <StarterSelect dispatch={dispatch} />
           )}
           {state.screen === 'prologue' && (
-            <Prologue dispatch={dispatch} />
+            <Prologue dispatch={dispatch} state={state} />
           )}
           {state.screen === 'exploration' && (
             <Exploration state={state} dispatch={dispatch} />
