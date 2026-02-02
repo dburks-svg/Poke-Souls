@@ -2412,7 +2412,7 @@
       return Math.max(1, damage);
     };
 
-    const MAX_TEAM_SIZE = 3;
+    const MAX_TEAM_SIZE = 5;
     const BIND_COST = 20;
 
     const getRandomWild = () => {
@@ -3010,7 +3010,9 @@
       isBossFight: false,
       currentEncounter: null,
       pendingEncounter: null,
-      pendingCreature: null
+      pendingCreature: null,
+      pendingCapture: null,
+      releaseMenuOpen: false
     };
 
     function handleCreatureFaint(state, team, enemy, log) {
@@ -3630,11 +3632,6 @@
             return { ...state, battleLog: [...state.battleLog, "Can't bind a boss!"] };
           }
 
-          // Check if team is full
-          if (state.team.length >= MAX_TEAM_SIZE) {
-            return { ...state, battleLog: [...state.battleLog, "Team is full!"] };
-          }
-
           // Check if can afford
           if (state.souls < BIND_COST) {
             return { ...state, battleLog: [...state.battleLog, "Not enough souls!"] };
@@ -3651,7 +3648,7 @@
           const newSouls = state.souls - BIND_COST;
 
           if (roll < captureChance) {
-            // SUCCESS! Creature joins team
+            // SUCCESS! Creature captured
             const capturedCreature = {
               id: state.enemyCreature.id.replace('wild', '').toLowerCase(),
               name: state.enemyCreature.name.replace('Wild ', ''),
@@ -3681,15 +3678,28 @@
             capturedCreature.moves = STARTERS[capturedCreature.id].moves;
             capturedCreature.nickname = null; // Will be set in nickname screen
 
-            log.push(`${capturedCreature.name} joined your disaster.`);
-
             const grassEncounters = state.grassEncounters.map(e =>
               e.x === state.currentEncounter?.x && e.y === state.currentEncounter?.y
                 ? { ...e, active: false }
                 : e
             );
 
-            // Show nickname prompt
+            // Team full? Show release screen instead of nickname
+            if (state.team.length >= MAX_TEAM_SIZE) {
+              log.push(`${capturedCreature.name} bound! But your team is full...`);
+              return {
+                ...state,
+                screen: 'release',
+                pendingCapture: capturedCreature,
+                releaseMenuOpen: true,
+                souls: newSouls,
+                battleLog: log,
+                grassEncounters
+              };
+            }
+
+            // Team has room - go straight to nickname
+            log.push(`${capturedCreature.name} joined your disaster.`);
             return {
               ...state,
               screen: 'nickname',
@@ -3699,7 +3709,7 @@
               grassEncounters
             };
           } else {
-            // FAILED - enemy gets a free attack (moved from below)
+            // FAILED - enemy gets a free attack
             log.push("They said no. Respect boundaries.");
 
             // Enemy retaliates
@@ -3710,6 +3720,47 @@
               turnPhase: 'enemy'
             };
           }
+        }
+
+        case 'RELEASE_FOR_CAPTURE': {
+          if (!state.pendingCapture) return state;
+          if (action.releaseIndex < 0 || action.releaseIndex >= state.team.length) return state;
+
+          const releasedCreature = state.team[action.releaseIndex];
+          const newTeam = state.team.filter((_, i) => i !== action.releaseIndex);
+
+          // Adjust activeCreatureIndex if needed
+          let newActiveIndex = state.activeCreatureIndex;
+          if (action.releaseIndex < state.activeCreatureIndex) {
+            newActiveIndex = state.activeCreatureIndex - 1;
+          } else if (action.releaseIndex === state.activeCreatureIndex) {
+            newActiveIndex = 0;
+          }
+
+          return {
+            ...state,
+            screen: 'nickname',
+            team: newTeam,
+            activeCreatureIndex: Math.min(newActiveIndex, newTeam.length - 1),
+            pendingCreature: state.pendingCapture,
+            pendingCapture: null,
+            releaseMenuOpen: false,
+            battleLog: [...state.battleLog, `${releasedCreature.nickname || releasedCreature.name} was released forever.`]
+          };
+        }
+
+        case 'CANCEL_CAPTURE': {
+          if (!state.pendingCapture) return state;
+
+          return {
+            ...state,
+            screen: 'exploration',
+            pendingCapture: null,
+            releaseMenuOpen: false,
+            enemy: null,
+            enemyCreature: null,
+            battleLog: [...state.battleLog, `${state.pendingCapture.name} escaped while you hesitated.`]
+          };
         }
 
         case 'SET_NICKNAME': {
@@ -5080,9 +5131,9 @@
 
             {/* Bind button - only for wild creatures, not bosses */}
             {!state.isBossFight && (() => {
-              const canBind = state.souls >= BIND_COST &&
-                              state.team.length < MAX_TEAM_SIZE &&
-                              state.turnPhase === 'player';
+              const teamFull = state.team.length >= MAX_TEAM_SIZE;
+              const canAfford = state.souls >= BIND_COST;
+              const canBind = canAfford && state.turnPhase === 'player';
               const difficulty = getDifficulty(state);
               const captureChance = getCaptureChance(state.enemy.hp, state.enemy.maxHp, difficulty.captureBonus);
 
@@ -5106,9 +5157,9 @@
                     opacity: 0.6
                   }}>B</span>
                   <div>SOUL BIND ({BIND_COST} souls)</div>
-                  <div style={{ fontSize: 'var(--font-xs)', marginTop: '3px', color: state.team.length >= MAX_TEAM_SIZE ? GBC.gold : 'inherit' }}>
-                    {state.team.length >= MAX_TEAM_SIZE ? 'TEAM FULL' :
-                     state.souls < BIND_COST ? `NEED ${BIND_COST - state.souls} MORE SOULS` :
+                  <div style={{ fontSize: 'var(--font-xs)', marginTop: '3px', color: teamFull ? GBC.gold : 'inherit' }}>
+                    {!canAfford ? `NEED ${BIND_COST - state.souls} MORE SOULS` :
+                     teamFull ? 'MUST RELEASE ONE' :
                      `${captureChance}% CHANCE`}
                   </div>
                 </button>
@@ -5385,6 +5436,199 @@
           >
             RETURN TO TITLE
           </button>
+        </div>
+      );
+    }
+
+    function ReleaseScreen({ state, dispatch }) {
+      const [selectedIndex, setSelectedIndex] = useState(null);
+      const [confirmOpen, setConfirmOpen] = useState(false);
+      const pendingCreature = state.pendingCapture;
+
+      const handleSelect = (index) => {
+        playSfx('menuClick');
+        setSelectedIndex(index);
+        setConfirmOpen(true);
+      };
+
+      const handleConfirmRelease = () => {
+        playSfx('menuClick');
+        dispatch({ type: 'RELEASE_FOR_CAPTURE', releaseIndex: selectedIndex });
+      };
+
+      const handleCancel = () => {
+        playSfx('menuClick');
+        setConfirmOpen(false);
+        setSelectedIndex(null);
+      };
+
+      const handleEscape = () => {
+        playSfx('menuClick');
+        dispatch({ type: 'CANCEL_CAPTURE' });
+      };
+
+      if (!pendingCreature) return null;
+
+      const selectedCreature = selectedIndex !== null ? state.team[selectedIndex] : null;
+
+      return (
+        <div style={{
+          ...styles.starterSelect,
+          minHeight: 'clamp(400px, 70vh, 700px)',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 'var(--spacing-md)'
+        }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-md)' }}>
+            <div style={{ color: GBC.gold, fontSize: 'var(--font-md)', marginBottom: 'var(--spacing-sm)' }}>
+              TEAM FULL
+            </div>
+            <div style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>
+              Release one to make room for {pendingCreature.name}
+            </div>
+          </div>
+
+          {/* Pending creature preview */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 'var(--spacing-md)',
+            marginBottom: 'var(--spacing-md)',
+            padding: 'var(--spacing-sm)',
+            backgroundColor: 'rgba(245, 203, 92, 0.1)',
+            border: `2px solid ${GBC.gold}`
+          }}>
+            <CreatureSprite type={pendingCreature.type} size={32} />
+            <div>
+              <div style={{ color: GBC.gold, fontSize: 'var(--font-sm)' }}>
+                {getTypeIcon(pendingCreature.type)} {pendingCreature.name}
+              </div>
+              <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)' }}>
+                HP: {pendingCreature.hp}/{pendingCreature.maxHp} | Scars: {pendingCreature.scars?.length || 0}
+              </div>
+            </div>
+          </div>
+
+          {/* Confirmation dialog */}
+          {confirmOpen && selectedCreature && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 100,
+              padding: 'var(--spacing-md)'
+            }}>
+              <div style={{
+                backgroundColor: GBC.bg,
+                border: `3px solid ${GBC.red}`,
+                padding: 'var(--spacing-lg)',
+                maxWidth: '350px',
+                textAlign: 'center'
+              }}>
+                <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                  <CreatureSprite type={selectedCreature.type} size={48} />
+                </div>
+                <div style={{ color: GBC.red, fontSize: 'var(--font-sm)', marginBottom: 'var(--spacing-sm)' }}>
+                  Release {selectedCreature.nickname || selectedCreature.name} forever?
+                </div>
+                <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-lg)' }}>
+                  They will not return.
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'center' }}>
+                  <button
+                    style={{ ...styles.button, padding: 'var(--spacing-sm) var(--spacing-lg)' }}
+                    onClick={handleCancel}
+                  >
+                    BACK
+                  </button>
+                  <button
+                    style={{
+                      ...styles.button,
+                      padding: 'var(--spacing-sm) var(--spacing-lg)',
+                      borderColor: GBC.red,
+                      color: GBC.red
+                    }}
+                    onClick={handleConfirmRelease}
+                  >
+                    RELEASE
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Team list */}
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)' }}>
+              SELECT CREATURE TO RELEASE:
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+              {state.team.map((creature, i) => {
+                const base = STARTERS[creature.id];
+                const difficulty = getDifficulty(state);
+                const stats = applyScars(creature, base, difficulty.hollowedThreshold);
+                const isHollowed = (creature.scars?.length || 0) >= difficulty.hollowedThreshold;
+
+                return (
+                  <button
+                    key={i}
+                    style={{
+                      ...styles.button,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--spacing-sm)',
+                      padding: 'var(--spacing-sm)',
+                      textAlign: 'left',
+                      minHeight: '60px'
+                    }}
+                    onClick={() => handleSelect(i)}
+                  >
+                    <CreatureSprite type={creature.type} size={32} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: isHollowed ? GBC.textDim : GBC.text, fontSize: 'var(--font-sm)' }}>
+                        {getTypeIcon(creature.type)} {creature.nickname || creature.name}
+                        {isHollowed && <span style={{ color: GBC.textDim }}> (Hollowed)</span>}
+                      </div>
+                      <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginTop: '2px' }}>
+                        HP: {creature.hp}/{stats.maxHp} | SP: {creature.stamina}/{stats.maxStamina} | Scars: {creature.scars?.length || 0}
+                      </div>
+                      {creature.scars?.length > 0 && (
+                        <div style={{ color: GBC.red, fontSize: 'var(--font-xs)', marginTop: '2px' }}>
+                          {creature.scars.map(s => s.name).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Cancel option */}
+          <div style={{ marginTop: 'var(--spacing-md)', textAlign: 'center' }}>
+            <button
+              style={{
+                ...styles.button,
+                padding: 'var(--spacing-sm) var(--spacing-lg)',
+                borderColor: GBC.textDim,
+                color: GBC.textDim
+              }}
+              onClick={handleEscape}
+            >
+              LET IT ESCAPE
+            </button>
+            <div style={{ color: GBC.textDim, fontSize: 'var(--font-xs)', marginTop: 'var(--spacing-xs)' }}>
+              (Souls already spent)
+            </div>
+          </div>
         </div>
       );
     }
@@ -6340,6 +6584,9 @@
           )}
           {state.screen === 'nickname' && (
             <NicknameScreen creature={state.pendingCreature} dispatch={dispatch} />
+          )}
+          {state.screen === 'release' && (
+            <ReleaseScreen state={state} dispatch={dispatch} />
           )}
           {state.screen === 'encounterPreview' && (
             <EncounterPreview encounter={state.pendingEncounter} dispatch={dispatch} />
