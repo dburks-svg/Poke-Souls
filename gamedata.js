@@ -2451,6 +2451,64 @@ var TILE_LORE = {
         'Or beginning.'
       ]
     }
+  },
+  labyrinth: {
+    // Ashen Gate (9,0)
+    '9,0': {
+      name: 'The Ashen Gate',
+      lines: [
+        'Beyond lies the world that was.',
+        '',
+        'This door opens when the full flame is ready.',
+        '',
+        '- BBADAHS Games'
+      ]
+    },
+    // Secret Door (15,9) - cracked wall
+    '15,9': {
+      name: 'Cracked Wall',
+      lines: [
+        'The stone here is weathered differently.',
+        '',
+        'Faint marks suggest this wall was not always solid.'
+      ]
+    },
+    // Clue 1 (16,1) - Statue pointing
+    '16,1': {
+      name: 'Stone Sentinel',
+      lines: [
+        'A worn statue stands watch, arm extended.',
+        '',
+        'Its gaze and gesture fix upon the eastern corridors below.'
+      ]
+    },
+    // Clue 2 (1,7) - Journal/inscription
+    '1,7': {
+      name: 'Faded Inscription',
+      lines: [
+        '"Where the labyrinth breathes, stone yields."',
+        '',
+        'The text trails off, as if the writer fled mid-thought.'
+      ]
+    },
+    // Clue 3 (4,15) - Bones arranged
+    '4,15': {
+      name: 'Scattered Remains',
+      lines: [
+        'Ancient bones lie in deliberate arrangement.',
+        '',
+        'The longest one points east, toward the outer wall.'
+      ]
+    },
+    // Clue 4 (17,17) - Flickering torch
+    '17,17': {
+      name: 'Restless Flame',
+      lines: [
+        'A torch flickers without wind.',
+        '',
+        'It burns strongest when facing north, as if drawn to something hidden.'
+      ]
+    }
   }
 };
 
