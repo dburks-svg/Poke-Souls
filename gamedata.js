@@ -883,20 +883,20 @@ var SPRITE_MANIFEST = {
   player: {
     male: {
       down: {
-        idle: ['assets/sprites/player/male/down_idle_0.png', 'assets/sprites/player/male/down_idle_1.png'],
-        walk: ['assets/sprites/player/male/down_walk_0.png', 'assets/sprites/player/male/down_walk_1.png', 'assets/sprites/player/male/down_walk_2.png', 'assets/sprites/player/male/down_walk_3.png']
+        idle: 'assets/sprites/player/male/down_idle.gif',
+        walk: 'assets/sprites/player/male/down_walk.gif'
       },
       up: {
-        idle: ['assets/sprites/player/male/up_idle_0.png', 'assets/sprites/player/male/up_idle_1.png'],
-        walk: ['assets/sprites/player/male/up_walk_0.png', 'assets/sprites/player/male/up_walk_1.png', 'assets/sprites/player/male/up_walk_2.png', 'assets/sprites/player/male/up_walk_3.png']
+        idle: 'assets/sprites/player/male/up_idle.gif',
+        walk: 'assets/sprites/player/male/up_walk.gif'
       },
       left: {
-        idle: ['assets/sprites/player/male/left_idle_0.png', 'assets/sprites/player/male/left_idle_1.png'],
-        walk: ['assets/sprites/player/male/left_walk_0.png', 'assets/sprites/player/male/left_walk_1.png', 'assets/sprites/player/male/left_walk_2.png', 'assets/sprites/player/male/left_walk_3.png']
+        idle: 'assets/sprites/player/male/left_idle.gif',
+        walk: 'assets/sprites/player/male/left_walk.gif'
       },
       right: {
-        idle: ['assets/sprites/player/male/right_idle_0.png', 'assets/sprites/player/male/right_idle_1.png'],
-        walk: ['assets/sprites/player/male/right_walk_0.png', 'assets/sprites/player/male/right_walk_1.png', 'assets/sprites/player/male/right_walk_2.png', 'assets/sprites/player/male/right_walk_3.png']
+        idle: 'assets/sprites/player/male/right_idle.gif',
+        walk: 'assets/sprites/player/male/right_walk.gif'
       }
     },
     female: {
@@ -987,12 +987,22 @@ var preloadSprites = () => {
       preloadedSprites.player[appearance] = {};
       Object.entries(directions).forEach(([direction, animations]) => {
         preloadedSprites.player[appearance][direction] = {};
-        Object.entries(animations).forEach(([animType, srcArray]) => {
-          promises.push(
-            loadFrameArray(srcArray).then(frames => {
-              preloadedSprites.player[appearance][direction][animType] = frames;
-            })
-          );
+        Object.entries(animations).forEach(([animType, srcOrArray]) => {
+          if (typeof srcOrArray === 'string') {
+            // Single GIF path - load as single Image
+            promises.push(
+              loadImage(srcOrArray).then(result => {
+                preloadedSprites.player[appearance][direction][animType] = result.loaded ? result.img : null;
+              })
+            );
+          } else {
+            // Array of PNG frame paths - load as frame array
+            promises.push(
+              loadFrameArray(srcOrArray).then(frames => {
+                preloadedSprites.player[appearance][direction][animType] = frames;
+              })
+            );
+          }
         });
       });
     });
@@ -1024,8 +1034,10 @@ var hasSpriteLoaded = (category, type, variant = 'base', animType = 'idle') => {
   }
   if (category === 'player') {
     // type = appearance, variant = direction, animType = 'idle' or 'walk'
-    const frames = preloadedSprites.player[type]?.[variant]?.[animType];
-    return frames !== null && frames !== undefined && frames.length > 0;
+    const sprite = preloadedSprites.player[type]?.[variant]?.[animType];
+    // Single Image (GIF) or array of frames (PNG)
+    if (sprite instanceof Image) return true;
+    return sprite !== null && sprite !== undefined && sprite.length > 0;
   }
   return false;
 };

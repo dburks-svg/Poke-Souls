@@ -77,6 +77,12 @@ If the prompt is vague or ambiguous, ask for clarification. Do not guess. Do not
 
 ## Core Systems
 
+## FILE ARCHITECTURE (Feb 2, 2026)
+- styles.css: CSS only. Do not modify unless fixing a visual bug.
+- gamedata.js: All game data, audio, sprites, utilities, save system. Regular script (not Babel).
+- index.html: React components and game engine only. Babel-transpiled.
+- NEVER combine these files. The split is intentional for context window management.
+
 ### Battle System
 
 - Turn-based state machine (player turn → enemy turn → resolution)

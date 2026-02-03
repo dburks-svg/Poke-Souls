@@ -332,10 +332,35 @@
     };
 
     // Main player sprite component
-    // SVG for all states. Bob animation (2px vertical bounce) while moving.
+    // GIF sprites for male (browser-animated), SVG fallback for others.
+    // 400ms delay before transitioning from walk GIF to idle GIF.
     const PlayerSprite = ({ direction = 'down', appearance = 'other', isMoving = false }) => {
+      const [showWalk, setShowWalk] = React.useState(false);
       const [bobUp, setBobUp] = React.useState(false);
+      const walkTimeoutRef = React.useRef(null);
 
+      // Handle walk-to-idle transition with 400ms delay
+      React.useEffect(() => {
+        if (isMoving) {
+          if (walkTimeoutRef.current) {
+            clearTimeout(walkTimeoutRef.current);
+            walkTimeoutRef.current = null;
+          }
+          setShowWalk(true);
+        } else if (showWalk) {
+          walkTimeoutRef.current = setTimeout(() => {
+            setShowWalk(false);
+            walkTimeoutRef.current = null;
+          }, 400);
+        }
+        return () => {
+          if (walkTimeoutRef.current) {
+            clearTimeout(walkTimeoutRef.current);
+          }
+        };
+      }, [isMoving]);
+
+      // Bob animation for SVG fallback movement
       React.useEffect(() => {
         if (!isMoving) {
           setBobUp(false);
@@ -347,6 +372,19 @@
         return () => clearInterval(interval);
       }, [isMoving]);
 
+      // Check for preloaded GIF sprite (single Image, not array)
+      const animType = showWalk ? 'walk' : 'idle';
+      const sprite = preloadedSprites.player[appearance]?.[direction]?.[animType];
+
+      if (sprite && !Array.isArray(sprite)) {
+        return (
+          <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src={sprite.src} width={48} height={48} style={{ imageRendering: 'pixelated' }} />
+          </div>
+        );
+      }
+
+      // Fallback: SVG with bob animation for movement
       return (
         <div style={{ transform: isMoving && bobUp ? 'translateY(-2px)' : 'none' }}>
           <FallbackPlayerSprite direction={direction} appearance={appearance} />
