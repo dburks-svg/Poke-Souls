@@ -1230,6 +1230,12 @@ var SCAR_TYPES = [
   { id: 'flinching', name: 'Flinching', effect: 'noPriority', description: 'Quick Strike no longer goes first' }
 ];
 
+var TITLES = [
+  { id: 'ashen_seeker', name: 'Ashen Seeker', description: 'Found the hidden chamber' },
+  { id: 'unscarred', name: 'Unscarred', description: 'Completed a run with zero scars' },
+  { id: 'first_flame', name: 'First Flame', description: 'Played during the demo period' }
+];
+
 // ASHEN PATH - 6 wide × 8 tall - Tutorial area, desolate wasteland
 // B = Bonfire (spawn), G = Grass (encounters), P = Path, W = Wall, X = Gate to Fallen Keep
 var ASHEN_PATH = [
@@ -2602,6 +2608,8 @@ var getSaveData = (state) => {
     hasSeenPrologue: state.hasSeenPrologue,
     playTime: state.playTime,
     difficulty: state.difficulty,
+    titles: state.titles,
+    activeTitle: state.activeTitle,
     savedAt: Date.now()
   };
 };
@@ -2855,6 +2863,8 @@ var initialState = {
   pendingEncounter: null,
   pendingCreature: null,
   pendingCapture: null,
-  releaseMenuOpen: false
+  releaseMenuOpen: false,
+  titles: [],
+  activeTitle: null
 };
 

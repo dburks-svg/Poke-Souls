@@ -2284,6 +2284,8 @@
             lastBonfire: saveData.lastBonfire,
             hasSeenPrologue: saveData.hasSeenPrologue,
             playTime: saveData.playTime || 0,
+            titles: saveData.titles || [],
+            activeTitle: saveData.activeTitle || null,
             saveNotification: 'Journey resumed.'
           };
         }
@@ -2297,6 +2299,27 @@
           return {
             ...state,
             playTime: state.playTime + action.delta
+          };
+        }
+
+        case 'EARN_TITLE': {
+          const titleId = action.titleId;
+          if (state.titles.includes(titleId)) {
+            return state;
+          }
+          const titleData = TITLES.find(t => t.id === titleId);
+          const titleName = titleData ? titleData.name : titleId;
+          return {
+            ...state,
+            titles: [...state.titles, titleId],
+            saveNotification: `Title earned: ${titleName}`
+          };
+        }
+
+        case 'SET_ACTIVE_TITLE': {
+          return {
+            ...state,
+            activeTitle: action.titleId
           };
         }
 
@@ -4499,7 +4522,13 @@
                   </div>
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ color: GBC.text, fontSize: 'var(--font-xs)' }}>{state.playerName || 'Ashen One'}</div>
+                  <div style={{ color: GBC.text, fontSize: 'var(--font-xs)' }}>
+                    {state.playerName || 'Ashen One'}
+                    {state.activeTitle && (() => {
+                      const titleData = TITLES.find(t => t.id === state.activeTitle);
+                      return titleData ? `, ${titleData.name}` : '';
+                    })()}
+                  </div>
                   <div style={{ color: GBC.gold, fontSize: 'var(--font-xs)' }}>
                     {state.souls}/{state.bankedSouls} souls
                   </div>
