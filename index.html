@@ -1278,6 +1278,11 @@
               if (newClues.length >= 4) {
                 newState.secretDoorRevealed = true;
                 newState.saveNotification = 'Something shifts in the labyrinth...';
+                // Append hint to current lore text
+                newState.examineText = {
+                  ...newState.examineText,
+                  lines: [...(newState.examineText.lines || []), '', '...A distant sound of grinding stone echoes through the maze.']
+                };
               }
             }
 
@@ -1294,6 +1299,7 @@
               // Award title for discovering the secret
               if (!state.titles.includes('ashen_seeker')) {
                 newState.titles = [...state.titles, 'ashen_seeker'];
+                newState.activeTitle = 'ashen_seeker';
                 newState.saveNotification = 'Title earned: Ashen Seeker';
               }
             }
@@ -1335,6 +1341,29 @@
           // Secret door blocks movement until revealed
           if (tile === 'S' && !state.secretDoorRevealed) {
             return { ...state, playerDir: dir };
+          }
+
+          // Walking into revealed secret door awards Ashen Seeker title
+          if (tile === 'S' && state.secretDoorRevealed) {
+            let sState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false };
+            sState.examineText = {
+              name: 'The Hidden Chamber',
+              lines: [
+                'The wall crumbles. Beyond, a small chamber.',
+                '',
+                'A single flame burns in the darkness.',
+                '',
+                'You have found what others could not.',
+                '',
+                'You are an Ashen Seeker.'
+              ]
+            };
+            if (!state.titles.includes('ashen_seeker')) {
+              sState.titles = [...state.titles, 'ashen_seeker'];
+              sState.activeTitle = 'ashen_seeker';
+              sState.saveNotification = 'Title earned: Ashen Seeker';
+            }
+            return sState;
           }
 
           let newState = { ...state, playerPos: { x: newX, y: newY }, playerDir: dir, bonfireMenuOpen: false, withdrawMenuOpen: false, depositMenuOpen: false };
