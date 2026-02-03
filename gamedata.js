@@ -1930,7 +1930,7 @@ var styles = {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(10, 10, 20, 0.95)',
-    zIndex: 2000,
+    zIndex: 2100,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
@@ -1991,7 +1991,7 @@ var styles = {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(10, 10, 20, 0.95)',
-    zIndex: 2500,
+    zIndex: 2200,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
@@ -2680,6 +2680,7 @@ var saveGame = (state) => {
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
     return true;
   } catch (e) {
+    console.error('saveGame failed:', e);
     return false;
   }
 };
@@ -2691,7 +2692,7 @@ var loadSaveData = () => {
       return JSON.parse(data);
     }
   } catch (e) {
-    // Silent fail - return null
+    console.error('loadSaveData failed:', e);
   }
   return null;
 };

@@ -1606,12 +1606,14 @@
         case 'WITHDRAW_SOULS': {
           const amount = Math.min(action.amount, state.bankedSouls);
           if (amount <= 0) return state;
-          return {
+          const newState = {
             ...state,
             souls: state.souls + amount,
             bankedSouls: state.bankedSouls - amount,
             withdrawMenuOpen: false
           };
+          saveGame(newState);
+          return newState;
         }
 
         case 'TOGGLE_DEPOSIT_MENU': {
@@ -1624,17 +1626,21 @@
         case 'DEPOSIT_SOULS': {
           const amount = Math.min(action.amount, state.souls);
           if (amount <= 0) return state;
-          return {
+          const newState = {
             ...state,
             souls: state.souls - amount,
             bankedSouls: state.bankedSouls + amount,
             depositMenuOpen: false
           };
+          saveGame(newState);
+          return newState;
         }
 
         case 'SELECT_MOVE': {
           const activeCreature = state.team[state.activeCreatureIndex];
-          const move = action.move;
+          // Check Flinching scar - strip priority at resolution time
+          const { hasFlinching } = applyScars(activeCreature, STARTERS[activeCreature.id]);
+          const move = action.move.priority && hasFlinching ? { ...action.move, priority: false } : action.move;
 
           if (move.cost > activeCreature.stamina) return state;
 
@@ -2139,7 +2145,7 @@
           }
 
           if (selectedMove.effect === 'rest') {
-            newEnemy.stamina = Math.min(newEnemy.stamina + 8, state.enemyCreature.maxStamina);
+            newEnemy.stamina = Math.min(newEnemy.stamina + 12, state.enemyCreature.maxStamina);
             log.push(`${state.enemyCreature.name} rests.`);
           } else if (selectedMove.effect === 'guard') {
             newEnemy.isGuarding = true;
