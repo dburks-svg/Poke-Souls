@@ -1327,6 +1327,58 @@ var LABYRINTH = [
   ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
 ];
 
+// ============= BFS PATHFINDING =============
+// Returns array of {x,y} positions from first step to destination (excludes start).
+// Returns [] if no path exists or start === end.
+function findPath(map, startX, startY, endX, endY, secretDoorRevealed) {
+  if (startX === endX && startY === endY) return [];
+  var rows = map.length;
+  var cols = map[0].length;
+  var visited = [];
+  for (var r = 0; r < rows; r++) {
+    visited[r] = [];
+    for (var c = 0; c < cols; c++) {
+      visited[r][c] = false;
+    }
+  }
+  var parent = [];
+  for (var r = 0; r < rows; r++) {
+    parent[r] = [];
+    for (var c = 0; c < cols; c++) {
+      parent[r][c] = null;
+    }
+  }
+  var queue = [{ x: startX, y: startY }];
+  visited[startY][startX] = true;
+  var dirs = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
+  while (queue.length > 0) {
+    var cur = queue.shift();
+    if (cur.x === endX && cur.y === endY) {
+      // Reconstruct path
+      var path = [];
+      var node = { x: endX, y: endY };
+      while (node.x !== startX || node.y !== startY) {
+        path.push({ x: node.x, y: node.y });
+        node = parent[node.y][node.x];
+      }
+      path.reverse();
+      return path;
+    }
+    for (var i = 0; i < dirs.length; i++) {
+      var nx = cur.x + dirs[i].dx;
+      var ny = cur.y + dirs[i].dy;
+      if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+      if (visited[ny][nx]) continue;
+      var tile = map[ny][nx];
+      if (tile === 'W') continue;
+      if (tile === 'S' && !secretDoorRevealed) continue;
+      visited[ny][nx] = true;
+      parent[ny][nx] = { x: cur.x, y: cur.y };
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  return [];
+}
 
 // ============= GBC COLOR PALETTE =============
 var GBC = {

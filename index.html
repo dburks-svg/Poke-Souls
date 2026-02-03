@@ -2765,6 +2765,17 @@
       const [isMoving, setIsMoving] = useState(false);
       const prevPosRef = useRef({ x: state.playerPos.x, y: state.playerPos.y });
       const moveTimeoutRef = useRef(null);
+      const autoPathRef = useRef(null);
+      const [destFlash, setDestFlash] = useState(null);
+
+      // Cancel any active auto-path
+      const cancelAutoPath = useCallback(() => {
+        if (autoPathRef.current) {
+          clearTimeout(autoPathRef.current.timerId);
+          autoPathRef.current = null;
+        }
+        setDestFlash(null);
+      }, []);
 
       // Detect when player position changes and trigger walk animation
       useEffect(() => {
@@ -2793,21 +2804,79 @@
         };
       }, [state.playerPos.x, state.playerPos.y]);
 
+      // Auto-path: walk tile-by-tile to a tapped destination
+      const startAutoPath = useCallback((path) => {
+        cancelAutoPath();
+        if (path.length === 0) return;
+        const dest = path[path.length - 1];
+        setDestFlash({ x: dest.x, y: dest.y });
+
+        // Pre-compute dx/dy steps from current position through path
+        const steps = [];
+        let prevX = state.playerPos.x;
+        let prevY = state.playerPos.y;
+        for (let i = 0; i < path.length; i++) {
+          steps.push({ dx: path[i].x - prevX, dy: path[i].y - prevY });
+          prevX = path[i].x;
+          prevY = path[i].y;
+        }
+
+        autoPathRef.current = { steps: steps, stepIndex: 0, timerId: null };
+
+        const executeNextStep = () => {
+          const ap = autoPathRef.current;
+          if (!ap || ap.stepIndex >= ap.steps.length) {
+            // Done walking
+            autoPathRef.current = null;
+            setDestFlash(null);
+            return;
+          }
+          const step = ap.steps[ap.stepIndex];
+          dispatch({ type: 'MOVE_PLAYER', dx: step.dx, dy: step.dy });
+          ap.stepIndex++;
+          if (ap.stepIndex < ap.steps.length) {
+            ap.timerId = setTimeout(executeNextStep, 150);
+          } else {
+            // Final step dispatched, clean up
+            autoPathRef.current = null;
+            setDestFlash(null);
+          }
+        };
+
+        executeNextStep();
+      }, [cancelAutoPath, dispatch, state.playerPos.x, state.playerPos.y]);
+
+      // Cancel auto-path on unmount (screen change to encounter/battle)
+      useEffect(() => {
+        return () => cancelAutoPath();
+      }, [cancelAutoPath]);
+
+      // Cancel auto-path on map change (gate transitions)
+      useEffect(() => {
+        cancelAutoPath();
+      }, [state.currentMap, cancelAutoPath]);
+
       const handleKeyDown = useCallback((e) => {
         const key = e.key.toLowerCase();
         let dx = 0, dy = 0;
 
         // Close examine overlay first if open
         if (state.examineText && (key === 'x' || key === 'escape' || key === 'enter' || key === 'e')) {
+          cancelAutoPath();
           dispatch({ type: 'CLOSE_EXAMINE' });
           return;
         }
 
-        if (key === 'arrowup' || key === 'w') dy = -1;
+        if (key === 'escape') {
+          cancelAutoPath();
+          return; // Let App-level handler open pause menu
+        }
+        else if (key === 'arrowup' || key === 'w') dy = -1;
         else if (key === 'arrowdown' || key === 's') dy = 1;
         else if (key === 'arrowleft' || key === 'a') dx = -1;
         else if (key === 'arrowright' || key === 'd') dx = 1;
         else if (key === 'e' || key === 'enter') {
+          cancelAutoPath();
           const tile = map[state.playerPos.y][state.playerPos.x];
           if (tile === 'B') {
             dispatch({ type: 'INTERACT_BONFIRE' });
@@ -2815,14 +2884,16 @@
           return;
         }
         else if (key === 'x') {
+          cancelAutoPath();
           dispatch({ type: 'EXAMINE_TILE' });
           return;
         }
 
         if (dx !== 0 || dy !== 0) {
+          cancelAutoPath();
           dispatch({ type: 'MOVE_PLAYER', dx, dy });
         }
-      }, [dispatch, map, state.playerPos, state.examineText]);
+      }, [dispatch, map, state.playerPos, state.examineText, cancelAutoPath]);
 
       useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
@@ -2860,6 +2931,9 @@
           return;
         }
 
+        // Block taps while bonfire/deposit/withdraw menus are open
+        if (state.bonfireMenuOpen || state.depositMenuOpen || state.withdrawMenuOpen) return;
+
         const px = state.playerPos.x;
         const py = state.playerPos.y;
         const dx = x - px;
@@ -2868,6 +2942,7 @@
 
         // Tap on player tile
         if (x === px && y === py) {
+          cancelAutoPath();
           // If on bonfire, interact with it
           if (currentTileType === 'B') {
             dispatch({ type: 'INTERACT_BONFIRE' });
@@ -2889,8 +2964,16 @@
         const isAdjacent = Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
 
         if (isAdjacent) {
+          cancelAutoPath();
           // Move in that direction
           dispatch({ type: 'MOVE_PLAYER', dx, dy });
+        } else {
+          // Non-adjacent: attempt pathfinding
+          if (tile === 'W' || (tile === 'S' && !state.secretDoorRevealed)) return;
+          const path = findPath(map, px, py, x, y, state.secretDoorRevealed);
+          if (path.length > 0) {
+            startAutoPath(path);
+          }
         }
       };
 
@@ -2926,17 +3009,21 @@
                   const py = state.playerPos.y;
                   const isAdjacent = Math.abs(x - px) <= 1 && Math.abs(y - py) <= 1 && !(x === px && y === py);
                   const isWalkable = tile !== 'W';
+                  const isDestFlash = destFlash && x === destFlash.x && y === destFlash.y;
 
                   return (
                     <div
                       key={`${x}-${y}`}
                       style={{
                         ...styles.tile,
-                        cursor: (isAdjacent && isWalkable) || isPlayer ? 'pointer' : 'default'
+                        cursor: isWalkable || isPlayer ? 'pointer' : 'default'
                       }}
                       onClick={() => handleTileTap(x, y, tile)}
                     >
                       {renderTileBackground(tile, x, y)}
+                      {isDestFlash && (
+                        <div style={{ position: 'absolute', inset: 0, zIndex: 15, animation: 'destinationFlash 0.6s ease-out forwards', pointerEvents: 'none' }} />
+                      )}
                       {isPlayer && (
                         <div style={{ position: 'absolute', zIndex: 10 }}>
                           <PlayerSprite direction={state.playerDir} appearance={state.playerAppearance || 'other'} isMoving={isMoving} />
