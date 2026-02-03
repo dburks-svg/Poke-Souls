@@ -1380,7 +1380,7 @@
             newState = {
               ...newState,
               currentMap: 'ashenPath',
-              playerPos: { x: 6, y: 6 }
+              playerPos: { x: 2, y: 6 }
             };
           }
 
@@ -2009,6 +2009,10 @@
             ...activeCreature,
             stamina: Math.min(activeCreature.stamina + 4, maxStamina)
           };
+
+          if (activeCreature.stamina >= 5) {
+            activeCreature.winded = false;
+          }
 
           // Process burn damage
           if (activeCreature.burnTurns > 0) {
@@ -2650,7 +2654,7 @@
           <div style={{ color: GBC.gold, fontSize: 'var(--font-xs)', marginBottom: 'var(--spacing-sm)', fontStyle: 'italic' }}>The flame remembers.</div>
           <p style={{ color: GBC.text, marginBottom: 'var(--spacing-lg)', fontSize: 'var(--font-sm)' }}>Choose your survivor</p>
           <div>
-            {Object.values(STARTERS).map(starter => (
+            {Object.values(STARTERS).filter(s => ['cindrath', 'marshveil', 'thornwick'].includes(s.id)).map(starter => (
               <div
                 key={starter.id}
                 style={styles.starterCard}

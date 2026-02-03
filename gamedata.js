@@ -2176,7 +2176,7 @@ var calculateDamage = (move, attacker, defender, attackerCreature, defenderCreat
     damage = Math.floor(damage * 0.5);
   }
 
-  if (attacker.winded) {
+  if (defender.winded) {
     damage = Math.floor(damage * 1.25);
   }
 
@@ -2876,7 +2876,7 @@ var initialState = {
   playerName: '',
   playerAppearance: '',
   currentMap: 'ashenPath',
-  playerPos: { x: 4, y: 1 },
+  playerPos: { x: 1, y: 1 },
   playerDir: 'down',
   team: [],
   activeCreatureIndex: 0,
@@ -2892,23 +2892,23 @@ var initialState = {
   bossPhase: 1,
   arenaEffect: null,
   grassEncounters: [
-    // Ashen Path encounters (expanded 8x12 map)
-    { x: 1, y: 1, map: 'ashenPath', active: true },
-    { x: 6, y: 1, map: 'ashenPath', active: true },
-    { x: 7, y: 1, map: 'ashenPath', active: true },
-    { x: 10, y: 1, map: 'ashenPath', active: true },
-    { x: 7, y: 2, map: 'ashenPath', active: true },
-    { x: 2, y: 3, map: 'ashenPath', active: true },
-    { x: 9, y: 5, map: 'ashenPath', active: true },
+    // Ashen Path encounters (6x8 map)
+    { x: 4, y: 1, map: 'ashenPath', active: true },
+    { x: 1, y: 3, map: 'ashenPath', active: true },
+    { x: 3, y: 4, map: 'ashenPath', active: true },
     // Hollow Deep encounters (Dark/Light creatures)
     { x: 4, y: 1, map: 'hollowDeep', active: true },
-    { x: 6, y: 4, map: 'hollowDeep', active: true },
+    { x: 5, y: 1, map: 'hollowDeep', active: true },
+    { x: 1, y: 4, map: 'hollowDeep', active: true },
+    { x: 8, y: 5, map: 'hollowDeep', active: true },
+    { x: 7, y: 9, map: 'hollowDeep', active: true },
+    { x: 1, y: 11, map: 'hollowDeep', active: true },
     // Labyrinth encounters
     { x: 4, y: 5, map: 'labyrinth', active: true },
     { x: 13, y: 13, map: 'labyrinth', active: true },
     { x: 1, y: 17, map: 'labyrinth', active: true }
   ],
-  lastBonfire: { map: 'ashenPath', pos: { x: 4, y: 1 } },
+  lastBonfire: { map: 'ashenPath', pos: { x: 1, y: 1 } },
   bonfireMenuOpen: false,
   withdrawMenuOpen: false,
   depositMenuOpen: false,
