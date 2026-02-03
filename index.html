@@ -332,34 +332,26 @@
     };
 
     // Main player sprite component
-    // Idle: SVG fallback (always correct art, always static)
-    // Walk: PNG animation at 4fps, except north (SVG fallback due to art issues)
+    // SVG for all states. Bob animation (2px vertical bounce) while moving.
     const PlayerSprite = ({ direction = 'down', appearance = 'other', isMoving = false }) => {
-      // When idle, use SVG (correct directional art, no cycling animation)
-      if (!isMoving) {
-        return <FallbackPlayerSprite direction={direction} appearance={appearance} />;
-      }
+      const [bobUp, setBobUp] = React.useState(false);
 
-      // North-walk PNGs have wrong proportions — use SVG fallback
-      if (direction === 'up') {
-        return <FallbackPlayerSprite direction={direction} appearance={appearance} />;
-      }
+      React.useEffect(() => {
+        if (!isMoving) {
+          setBobUp(false);
+          return;
+        }
+        const interval = setInterval(() => {
+          setBobUp(prev => !prev);
+        }, 200);
+        return () => clearInterval(interval);
+      }, [isMoving]);
 
-      // When walking (south/east/west), use PNG walk animation
-      const frames = preloadedSprites.player[appearance]?.[direction]?.walk;
-      if (frames && frames.length > 0) {
-        return (
-          <AnimatedSprite
-            frames={frames}
-            frameRate={250}
-            size={48}
-            playing={true}
-          />
-        );
-      }
-
-      // PNG walk frames unavailable — SVG fallback
-      return <FallbackPlayerSprite direction={direction} appearance={appearance} />;
+      return (
+        <div style={{ transform: isMoving && bobUp ? 'translateY(-2px)' : 'none' }}>
+          <FallbackPlayerSprite direction={direction} appearance={appearance} />
+        </div>
+      );
     };
 
     // Creature sprites - SVG fallback version
