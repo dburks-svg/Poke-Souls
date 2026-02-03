@@ -2263,6 +2263,51 @@ var getRandomDeepWild = () => {
   return creature;
 };
 
+var getRandomLabyrinthWild = () => {
+  const typeRoll = Math.random();
+  let baseCreature;
+  if (typeRoll < 0.2) {
+    baseCreature = { id: 'wildCindrath', name: 'Wild Cindrath', type: 'fire',
+      maxHp: STARTERS.cindrath.maxHp + 8, maxStamina: STARTERS.cindrath.maxStamina + 4,
+      souls: 25, moves: STARTERS.cindrath.moves };
+  } else if (typeRoll < 0.4) {
+    baseCreature = { id: 'wildMarshveil', name: 'Wild Marshveil', type: 'water',
+      maxHp: STARTERS.marshveil.maxHp + 8, maxStamina: STARTERS.marshveil.maxStamina + 4,
+      souls: 25, moves: STARTERS.marshveil.moves };
+  } else if (typeRoll < 0.6) {
+    baseCreature = { id: 'wildThornwick', name: 'Wild Thornwick', type: 'grass',
+      maxHp: STARTERS.thornwick.maxHp + 8, maxStamina: STARTERS.thornwick.maxStamina + 4,
+      souls: 25, moves: STARTERS.thornwick.moves };
+  } else if (typeRoll < 0.8) {
+    baseCreature = { id: 'wildUmbravine', name: 'Wild Umbravine', type: 'dark',
+      maxHp: STARTERS.umbravine.maxHp + 8, maxStamina: STARTERS.umbravine.maxStamina + 4,
+      souls: 25, moves: STARTERS.umbravine.moves };
+  } else {
+    baseCreature = { id: 'wildSolrath', name: 'Wild Solrath', type: 'light',
+      maxHp: STARTERS.solrath.maxHp + 8, maxStamina: STARTERS.solrath.maxStamina + 4,
+      souls: 25, moves: STARTERS.solrath.moves };
+  }
+
+  const hpVariance = Math.floor(Math.random() * 11) - 5;
+  const staminaVariance = Math.floor(Math.random() * 5) - 2;
+
+  const creature = {
+    ...baseCreature,
+    maxHp: Math.max(30, baseCreature.maxHp + hpVariance),
+    maxStamina: Math.max(14, baseCreature.maxStamina + staminaVariance),
+    scars: []
+  };
+
+  // 30% chance of pre-scarred (highest in game)
+  if (Math.random() < 0.3) {
+    const scar = getRandomScar();
+    creature.scars = [scar];
+    creature.preScarred = true;
+  }
+
+  return creature;
+};
+
 var getCaptureChance = (currentHp, maxHp, captureBonus = 0) => {
   const hpPercent = (currentHp / (maxHp || 1)) * 100;
   let chance;

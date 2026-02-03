@@ -1344,7 +1344,7 @@
               e => e.x === newX && e.y === newY && e.map === state.currentMap && e.active
             );
             if (encounter && !encounter.alerted && Math.random() < 0.6) {
-              const wildData = state.currentMap === 'hollowDeep' ? getRandomDeepWild() : getRandomWild();
+              const wildData = state.currentMap === 'labyrinth' ? getRandomLabyrinthWild() : state.currentMap === 'hollowDeep' ? getRandomDeepWild() : getRandomWild();
               // Apply scar penalties if pre-scarred
               let actualMaxHp = wildData.maxHp;
               let actualMaxStamina = wildData.maxStamina;
