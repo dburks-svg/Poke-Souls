@@ -9,6 +9,71 @@
 // ============= TOUCH DEVICE DETECTION =============
 var isTouchDevice = () => 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
+// ============= LIVE BALANCE CONFIG =============
+// All tunable balance values in one place. The DevDashboard mutates these at runtime.
+// Creature/boss/type data stays in their own objects; the dashboard mutates those in-place.
+window.GAME_CONFIG = {
+  // -- Combat --
+  combat: {
+    guardDamageReduction: 0.5,
+    windedDamageBonus: 1.25,
+    windedThreshold: 5,
+    windedWarningThreshold: 8,
+    scarredDamagePenalty: 0.75,
+    scarredDamageThreshold: 3,
+    staminaPerTurnRecovery: 4,
+    restRecoveryBase: 8,
+    minimumDamage: 1
+  },
+  // -- Status Effects --
+  statusFx: {
+    burnDuration: 2,
+    burnDamage: 3,
+    poisonDuration: 3,
+    poisonDamage: 2,
+    chillDuration: 2,
+    chillSkipChance: 0.25,
+    scorchedEarthDamage: 2,
+    fracturedAuraDamage: 2
+  },
+  // -- Scars --
+  scars: {
+    hollowedStatMultiplier: 0.75
+  },
+  // -- Souls & Capture --
+  souls: {
+    bindCost: 20,
+    maxTeamSize: 5,
+    captureBrackets: { under10: 90, under25: 60, under50: 30, over50: 10 },
+    captureCapMin: 5,
+    captureCapMax: 95
+  },
+  // -- Wild Encounters --
+  wildEncounters: {
+    grassEncounterChance: 0.6,
+    hpVarianceRange: 11,
+    staminaVarianceRange: 5,
+    surface: { hpFloor: 20, staminaFloor: 10, preScarChance: 0.1 },
+    deep: { hpFloor: 25, staminaFloor: 12, preScarChance: 0.2, hpBonus: 5, staminaBonus: 2, umbravineChance: 0.6, umbravineSouls: 25, solrathSouls: 28 },
+    labyrinth: { hpFloor: 30, staminaFloor: 14, preScarChance: 0.3, hpBonus: 8, staminaBonus: 4, souls: 25 }
+  },
+  // -- Bosses --
+  bosses: {
+    phaseTransitionThreshold: 0.3,
+    obsidianHoundPhaseHeal: 20,
+    hollowWardenPhaseHeal: 25
+  },
+  // -- Drain/Heal fallbacks --
+  fallbacks: {
+    drainHp: 4,
+    drainStamina: 4,
+    healAmount: 10
+  }
+};
+
+// Frozen snapshot for reset
+window.GAME_CONFIG_DEFAULTS = JSON.parse(JSON.stringify(window.GAME_CONFIG));
+
 // ============= MUSIC SYSTEM =============
 
 class MusicManager {
@@ -2232,48 +2297,49 @@ var getTypeIcon = (type) => {
 
 var calculateDamage = (move, attacker, defender, attackerCreature, defenderCreature, difficultyMult = 1.0) => {
   if (move.damage === 0) return 0;
+  var cfg = window.GAME_CONFIG.combat;
   let damage = move.damage;
   const effectiveness = TYPE_CHART[attackerCreature.type]?.[defenderCreature.type] ?? 1.0;
   damage = Math.floor(damage * effectiveness);
 
   if (defender.isGuarding) {
-    damage = Math.floor(damage * 0.5);
+    damage = Math.floor(damage * cfg.guardDamageReduction);
   }
 
   if (defender.winded) {
-    damage = Math.floor(damage * 1.25);
+    damage = Math.floor(damage * cfg.windedDamageBonus);
   }
 
-  if (attacker.scars && attacker.scars.length >= 3) {
-    damage = Math.floor(damage * 0.75);
+  if (attacker.scars && attacker.scars.length >= cfg.scarredDamageThreshold) {
+    damage = Math.floor(damage * cfg.scarredDamagePenalty);
   }
 
   // Apply difficulty multiplier for enemy attacks
   damage = Math.floor(damage * difficultyMult);
 
-  return Math.max(1, damage);
+  return Math.max(cfg.minimumDamage, damage);
 };
 
+// Legacy aliases - dashboard updates GAME_CONFIG directly, and index.html reads from GAME_CONFIG.souls
 var MAX_TEAM_SIZE = 5;
 var BIND_COST = 20;
 
 var getRandomWild = () => {
+  var cfg = window.GAME_CONFIG.wildEncounters;
   const wilds = Object.values(WILD_CREATURES);
   const baseCreature = wilds[Math.floor(Math.random() * wilds.length)];
 
-  // Add stat variance: +/- 5 HP, +/- 2 stamina
-  const hpVariance = Math.floor(Math.random() * 11) - 5; // -5 to +5
-  const staminaVariance = Math.floor(Math.random() * 5) - 2; // -2 to +2
+  const hpVariance = Math.floor(Math.random() * cfg.hpVarianceRange) - Math.floor(cfg.hpVarianceRange / 2);
+  const staminaVariance = Math.floor(Math.random() * cfg.staminaVarianceRange) - Math.floor(cfg.staminaVarianceRange / 2);
 
   const creature = {
     ...baseCreature,
-    maxHp: Math.max(20, baseCreature.maxHp + hpVariance),
-    maxStamina: Math.max(10, baseCreature.maxStamina + staminaVariance),
+    maxHp: Math.max(cfg.surface.hpFloor, baseCreature.maxHp + hpVariance),
+    maxStamina: Math.max(cfg.surface.staminaFloor, baseCreature.maxStamina + staminaVariance),
     scars: []
   };
 
-  // 10% chance of pre-scarred creature
-  if (Math.random() < 0.1) {
+  if (Math.random() < cfg.surface.preScarChance) {
     const scar = getRandomScar();
     creature.scars = [scar];
     creature.preScarred = true;
@@ -2284,41 +2350,40 @@ var getRandomWild = () => {
 
 // Get random creature for The Hollow Deep (Dark/Light types)
 var getRandomDeepWild = () => {
-  // 60% Umbravine (Dark), 40% Solrath (Light)
+  var cfg = window.GAME_CONFIG.wildEncounters;
+  var deep = cfg.deep;
   const typeRoll = Math.random();
-  const isUmbravine = typeRoll < 0.6;
+  const isUmbravine = typeRoll < deep.umbravineChance;
 
   const baseCreature = isUmbravine ? {
     id: 'wildUmbravine',
     name: 'Wild Umbravine',
     type: 'dark',
-    maxHp: STARTERS.umbravine.maxHp + 5, // +5 HP for Deep creatures
-    maxStamina: STARTERS.umbravine.maxStamina + 2, // +2 Stamina
-    souls: 25, // More souls from Hollow Deep creatures
+    maxHp: STARTERS.umbravine.maxHp + deep.hpBonus,
+    maxStamina: STARTERS.umbravine.maxStamina + deep.staminaBonus,
+    souls: deep.umbravineSouls,
     moves: STARTERS.umbravine.moves
   } : {
     id: 'wildSolrath',
     name: 'Wild Solrath',
     type: 'light',
-    maxHp: STARTERS.solrath.maxHp + 5,
-    maxStamina: STARTERS.solrath.maxStamina + 2,
-    souls: 28, // Light creatures give slightly more
+    maxHp: STARTERS.solrath.maxHp + deep.hpBonus,
+    maxStamina: STARTERS.solrath.maxStamina + deep.staminaBonus,
+    souls: deep.solrathSouls,
     moves: STARTERS.solrath.moves
   };
 
-  // Add stat variance
-  const hpVariance = Math.floor(Math.random() * 11) - 5;
-  const staminaVariance = Math.floor(Math.random() * 5) - 2;
+  const hpVariance = Math.floor(Math.random() * cfg.hpVarianceRange) - Math.floor(cfg.hpVarianceRange / 2);
+  const staminaVariance = Math.floor(Math.random() * cfg.staminaVarianceRange) - Math.floor(cfg.staminaVarianceRange / 2);
 
   const creature = {
     ...baseCreature,
-    maxHp: Math.max(25, baseCreature.maxHp + hpVariance),
-    maxStamina: Math.max(12, baseCreature.maxStamina + staminaVariance),
+    maxHp: Math.max(deep.hpFloor, baseCreature.maxHp + hpVariance),
+    maxStamina: Math.max(deep.staminaFloor, baseCreature.maxStamina + staminaVariance),
     scars: []
   };
 
-  // 20% chance of pre-scarred (higher than surface)
-  if (Math.random() < 0.2) {
+  if (Math.random() < deep.preScarChance) {
     const scar = getRandomScar();
     creature.scars = [scar];
     creature.preScarred = true;
@@ -2328,42 +2393,43 @@ var getRandomDeepWild = () => {
 };
 
 var getRandomLabyrinthWild = () => {
+  var cfg = window.GAME_CONFIG.wildEncounters;
+  var lab = cfg.labyrinth;
   const typeRoll = Math.random();
   let baseCreature;
   if (typeRoll < 0.2) {
     baseCreature = { id: 'wildCindrath', name: 'Wild Cindrath', type: 'fire',
-      maxHp: STARTERS.cindrath.maxHp + 8, maxStamina: STARTERS.cindrath.maxStamina + 4,
-      souls: 25, moves: STARTERS.cindrath.moves };
+      maxHp: STARTERS.cindrath.maxHp + lab.hpBonus, maxStamina: STARTERS.cindrath.maxStamina + lab.staminaBonus,
+      souls: lab.souls, moves: STARTERS.cindrath.moves };
   } else if (typeRoll < 0.4) {
     baseCreature = { id: 'wildMarshveil', name: 'Wild Marshveil', type: 'water',
-      maxHp: STARTERS.marshveil.maxHp + 8, maxStamina: STARTERS.marshveil.maxStamina + 4,
-      souls: 25, moves: STARTERS.marshveil.moves };
+      maxHp: STARTERS.marshveil.maxHp + lab.hpBonus, maxStamina: STARTERS.marshveil.maxStamina + lab.staminaBonus,
+      souls: lab.souls, moves: STARTERS.marshveil.moves };
   } else if (typeRoll < 0.6) {
     baseCreature = { id: 'wildThornwick', name: 'Wild Thornwick', type: 'grass',
-      maxHp: STARTERS.thornwick.maxHp + 8, maxStamina: STARTERS.thornwick.maxStamina + 4,
-      souls: 25, moves: STARTERS.thornwick.moves };
+      maxHp: STARTERS.thornwick.maxHp + lab.hpBonus, maxStamina: STARTERS.thornwick.maxStamina + lab.staminaBonus,
+      souls: lab.souls, moves: STARTERS.thornwick.moves };
   } else if (typeRoll < 0.8) {
     baseCreature = { id: 'wildUmbravine', name: 'Wild Umbravine', type: 'dark',
-      maxHp: STARTERS.umbravine.maxHp + 8, maxStamina: STARTERS.umbravine.maxStamina + 4,
-      souls: 25, moves: STARTERS.umbravine.moves };
+      maxHp: STARTERS.umbravine.maxHp + lab.hpBonus, maxStamina: STARTERS.umbravine.maxStamina + lab.staminaBonus,
+      souls: lab.souls, moves: STARTERS.umbravine.moves };
   } else {
     baseCreature = { id: 'wildSolrath', name: 'Wild Solrath', type: 'light',
-      maxHp: STARTERS.solrath.maxHp + 8, maxStamina: STARTERS.solrath.maxStamina + 4,
-      souls: 25, moves: STARTERS.solrath.moves };
+      maxHp: STARTERS.solrath.maxHp + lab.hpBonus, maxStamina: STARTERS.solrath.maxStamina + lab.staminaBonus,
+      souls: lab.souls, moves: STARTERS.solrath.moves };
   }
 
-  const hpVariance = Math.floor(Math.random() * 11) - 5;
-  const staminaVariance = Math.floor(Math.random() * 5) - 2;
+  const hpVariance = Math.floor(Math.random() * cfg.hpVarianceRange) - Math.floor(cfg.hpVarianceRange / 2);
+  const staminaVariance = Math.floor(Math.random() * cfg.staminaVarianceRange) - Math.floor(cfg.staminaVarianceRange / 2);
 
   const creature = {
     ...baseCreature,
-    maxHp: Math.max(30, baseCreature.maxHp + hpVariance),
-    maxStamina: Math.max(14, baseCreature.maxStamina + staminaVariance),
+    maxHp: Math.max(lab.hpFloor, baseCreature.maxHp + hpVariance),
+    maxStamina: Math.max(lab.staminaFloor, baseCreature.maxStamina + staminaVariance),
     scars: []
   };
 
-  // 30% chance of pre-scarred (highest in game)
-  if (Math.random() < 0.3) {
+  if (Math.random() < lab.preScarChance) {
     const scar = getRandomScar();
     creature.scars = [scar];
     creature.preScarred = true;
@@ -2373,14 +2439,14 @@ var getRandomLabyrinthWild = () => {
 };
 
 var getCaptureChance = (currentHp, maxHp, captureBonus = 0) => {
+  var cfg = window.GAME_CONFIG.souls;
   const hpPercent = (currentHp / (maxHp || 1)) * 100;
   let chance;
-  if (hpPercent < 10) chance = 90;
-  else if (hpPercent < 25) chance = 60;
-  else if (hpPercent <= 50) chance = 30;
-  else chance = 10;
-  // Apply difficulty capture bonus (capped at 5-95%)
-  return Math.max(5, Math.min(95, chance + captureBonus));
+  if (hpPercent < 10) chance = cfg.captureBrackets.under10;
+  else if (hpPercent < 25) chance = cfg.captureBrackets.under25;
+  else if (hpPercent <= 50) chance = cfg.captureBrackets.under50;
+  else chance = cfg.captureBrackets.over50;
+  return Math.max(cfg.captureCapMin, Math.min(cfg.captureCapMax, chance + captureBonus));
 };
 
 var getRandomScar = (difficulty) => {
@@ -2398,6 +2464,7 @@ var getRandomScar = (difficulty) => {
 };
 
 var applyScars = (creature, baseData, hollowedThreshold = 3) => {
+  var cfg = window.GAME_CONFIG.scars;
   let maxHp = baseData.maxHp;
   let maxStamina = baseData.maxStamina;
   let hasFlinching = false;
@@ -2411,8 +2478,8 @@ var applyScars = (creature, baseData, hollowedThreshold = 3) => {
   }
 
   if (creature.scars && creature.scars.length >= hollowedThreshold) {
-    maxHp = Math.floor(maxHp * 0.75);
-    maxStamina = Math.floor(maxStamina * 0.75);
+    maxHp = Math.floor(maxHp * cfg.hollowedStatMultiplier);
+    maxStamina = Math.floor(maxStamina * cfg.hollowedStatMultiplier);
   }
 
   return { maxHp: Math.max(1, maxHp), maxStamina: Math.max(1, maxStamina), hasFlinching };

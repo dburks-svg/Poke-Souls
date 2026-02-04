@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scars of Ash</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -1410,7 +1411,7 @@
             const encounter = state.grassEncounters.find(
               e => e.x === newX && e.y === newY && e.map === state.currentMap && e.active
             );
-            if (encounter && !encounter.alerted && Math.random() < 0.6) {
+            if (encounter && !encounter.alerted && Math.random() < GAME_CONFIG.wildEncounters.grassEncounterChance) {
               const wildData = state.currentMap === 'labyrinth' ? getRandomLabyrinthWild() : state.currentMap === 'hollowDeep' ? getRandomDeepWild() : getRandomWild();
               // Apply scar penalties if pre-scarred
               let actualMaxHp = wildData.maxHp;
@@ -1717,7 +1718,7 @@
           if (move.effect === 'rest') {
             newTeam[state.activeCreatureIndex] = {
               ...activeCreature,
-              stamina: Math.min(activeCreature.stamina + 8 + 4,
+              stamina: Math.min(activeCreature.stamina + GAME_CONFIG.combat.restRecoveryBase + GAME_CONFIG.combat.staminaPerTurnRecovery,
                 applyScars(activeCreature, STARTERS[activeCreature.id]).maxStamina),
               winded: false,
               isGuarding: false
@@ -1732,7 +1733,7 @@
             const { maxHp } = applyScars(activeCreature, baseData);
             newTeam[state.activeCreatureIndex] = {
               ...activeCreature,
-              hp: Math.min(activeCreature.hp + (move.healAmount || 10), maxHp),
+              hp: Math.min(activeCreature.hp + (move.healAmount || GAME_CONFIG.fallbacks.healAmount), maxHp),
               stamina: activeCreature.stamina - move.cost,
               burnTurns: 0,
               poisonTurns: 0,
@@ -1742,7 +1743,7 @@
             };
             log.push(`${activeCreature.nickname || activeCreature.name} used ${move.name}!`);
             log.push(`${activeCreature.nickname || activeCreature.name} is purified and healed!`);
-            if (newTeam[state.activeCreatureIndex].stamina < 5) {
+            if (newTeam[state.activeCreatureIndex].stamina < GAME_CONFIG.combat.windedThreshold) {
               newTeam[state.activeCreatureIndex].winded = true;
               log.push(`${activeCreature.nickname || activeCreature.name} is winded!`);
             }
@@ -1757,7 +1758,7 @@
             };
             log.push(`${activeCreature.nickname || activeCreature.name} takes a defensive stance.`);
 
-            if (activeCreature.stamina - move.cost < 5) {
+            if (activeCreature.stamina - move.cost < GAME_CONFIG.combat.windedThreshold) {
               newTeam[state.activeCreatureIndex].winded = true;
               log.push(`${activeCreature.nickname || activeCreature.name} is winded!`);
             }
@@ -1781,23 +1782,23 @@
           // Apply status effects to enemy based on move
           if (move.effect && move.effectChance && Math.random() * 100 < move.effectChance) {
             if (move.effect === 'burn' && (!newEnemy.burnTurns || newEnemy.burnTurns === 0)) {
-              newEnemy.burnTurns = 2;
+              newEnemy.burnTurns = GAME_CONFIG.statusFx.burnDuration;
               log.push(`${state.enemyCreature.name} is burning!`);
             }
             if (move.effect === 'poison' && (!newEnemy.poisonTurns || newEnemy.poisonTurns === 0)) {
-              newEnemy.poisonTurns = 3;
+              newEnemy.poisonTurns = GAME_CONFIG.statusFx.poisonDuration;
               log.push(`${state.enemyCreature.name} is poisoned!`);
             }
             if (move.effect === 'chill' && (!newEnemy.chillTurns || newEnemy.chillTurns === 0)) {
-              newEnemy.chillTurns = 2;
+              newEnemy.chillTurns = GAME_CONFIG.statusFx.chillDuration;
               log.push(`${state.enemyCreature.name} is chilled!`);
             }
           }
 
           // Void Drain - drains stamina from enemy and heals self
           if (move.effect === 'drain') {
-            const drainAmount = move.drainStamina || 4;
-            const healAmount = move.drainHp || 4;
+            const drainAmount = move.drainStamina || GAME_CONFIG.fallbacks.drainStamina;
+            const healAmount = move.drainHp || GAME_CONFIG.fallbacks.drainHp;
             newEnemy.stamina = Math.max(0, newEnemy.stamina - drainAmount);
             const baseData = STARTERS[activeCreature.id];
             const { maxHp } = applyScars(activeCreature, baseData);
@@ -1814,17 +1815,17 @@
             isGuarding: false
           };
 
-          if (newTeam[state.activeCreatureIndex].stamina < 5) {
+          if (newTeam[state.activeCreatureIndex].stamina < GAME_CONFIG.combat.windedThreshold) {
             newTeam[state.activeCreatureIndex].winded = true;
             log.push(`${activeCreature.nickname || activeCreature.name} is winded!`);
           }
 
           if (state.isBossFight && state.bossPhase === 1 &&
-              newEnemy.hp <= state.enemyCreature.maxHp * 0.3 && newEnemy.hp > 0) {
+              newEnemy.hp <= state.enemyCreature.maxHp * GAME_CONFIG.bosses.phaseTransitionThreshold && newEnemy.hp > 0) {
             const difficulty = getDifficulty(state);
             // Broken difficulty: no phase transition pause (boss still transforms but no HP recovery)
             if (difficulty.bossPhaseTransition) {
-              newEnemy.hp += state.isHollowWardenFight ? 25 : 20;
+              newEnemy.hp += state.isHollowWardenFight ? GAME_CONFIG.bosses.hollowWardenPhaseHeal : GAME_CONFIG.bosses.obsidianHoundPhaseHeal;
             }
 
             if (state.isHollowWardenFight) {
@@ -1899,7 +1900,7 @@
           }
 
           // Check if can afford
-          if (state.souls < BIND_COST) {
+          if (state.souls < GAME_CONFIG.souls.bindCost) {
             return { ...state, battleLog: [...state.battleLog, "Not enough souls!"] };
           }
 
@@ -1911,7 +1912,7 @@
           log.push(`Attempting soul bind... (${captureChance}% chance)`);
 
           // Deduct souls regardless of outcome
-          const newSouls = state.souls - BIND_COST;
+          const newSouls = state.souls - GAME_CONFIG.souls.bindCost;
 
           if (roll < captureChance) {
             // SUCCESS! Creature captured
@@ -1951,7 +1952,7 @@
             );
 
             // Team full? Show release screen instead of nickname
-            if (state.team.length >= MAX_TEAM_SIZE) {
+            if (state.team.length >= GAME_CONFIG.souls.maxTeamSize) {
               log.push(`${capturedCreature.name} bound! But your team is full...`);
               return {
                 ...state,
@@ -2078,46 +2079,46 @@
 
           activeCreature = {
             ...activeCreature,
-            stamina: Math.min(activeCreature.stamina + 4, maxStamina)
+            stamina: Math.min(activeCreature.stamina + GAME_CONFIG.combat.staminaPerTurnRecovery, maxStamina)
           };
 
-          if (activeCreature.stamina >= 5) {
+          if (activeCreature.stamina >= GAME_CONFIG.combat.windedThreshold) {
             activeCreature.winded = false;
           }
 
           // Process burn damage
           if (activeCreature.burnTurns > 0) {
-            activeCreature.hp = Math.max(0, activeCreature.hp - 3);
+            activeCreature.hp = Math.max(0, activeCreature.hp - GAME_CONFIG.statusFx.burnDamage);
             activeCreature.burnTurns--;
-            log.push(`${activeCreature.nickname || activeCreature.name} takes 3 burn damage!`);
+            log.push(`${activeCreature.nickname || activeCreature.name} takes ${GAME_CONFIG.statusFx.burnDamage} burn damage!`);
           }
 
           // Process poison damage
           if (activeCreature.poisonTurns > 0) {
-            activeCreature.hp = Math.max(0, activeCreature.hp - 2);
+            activeCreature.hp = Math.max(0, activeCreature.hp - GAME_CONFIG.statusFx.poisonDamage);
             activeCreature.poisonTurns--;
-            log.push(`${activeCreature.nickname || activeCreature.name} takes 2 poison damage!`);
+            log.push(`${activeCreature.nickname || activeCreature.name} takes ${GAME_CONFIG.statusFx.poisonDamage} poison damage!`);
           }
 
-          // Process chill effect (25% chance to skip turn)
+          // Process chill effect
           let chillSkip = false;
           if (activeCreature.chillTurns > 0) {
             activeCreature.chillTurns--;
-            if (Math.random() < 0.25) {
+            if (Math.random() < GAME_CONFIG.statusFx.chillSkipChance) {
               chillSkip = true;
               log.push(`${activeCreature.nickname || activeCreature.name} is frozen and can't move!`);
             }
           }
 
           if (state.arenaEffect === 'scorchedEarth' && activeBase.type !== 'fire') {
-            activeCreature.hp = Math.max(0, activeCreature.hp - 2);
-            log.push(`Scorched Earth burns ${activeCreature.nickname || activeCreature.name} for 2 damage!`);
+            activeCreature.hp = Math.max(0, activeCreature.hp - GAME_CONFIG.statusFx.scorchedEarthDamage);
+            log.push(`Scorched Earth burns ${activeCreature.nickname || activeCreature.name} for ${GAME_CONFIG.statusFx.scorchedEarthDamage} damage!`);
           }
 
           // Fractured Aura damages non-Dark/Light creatures
           if (state.arenaEffect === 'fracturedAura' && activeBase.type !== 'dark' && activeBase.type !== 'light') {
-            activeCreature.hp = Math.max(0, activeCreature.hp - 2);
-            log.push(`Fractured Aura tears at ${activeCreature.nickname || activeCreature.name} for 2 damage!`);
+            activeCreature.hp = Math.max(0, activeCreature.hp - GAME_CONFIG.statusFx.fracturedAuraDamage);
+            log.push(`Fractured Aura tears at ${activeCreature.nickname || activeCreature.name} for ${GAME_CONFIG.statusFx.fracturedAuraDamage} damage!`);
           }
 
           newTeam[state.activeCreatureIndex] = activeCreature;
@@ -2126,19 +2127,19 @@
             return handleCreatureFaint(state, newTeam, newEnemy, log);
           }
 
-          newEnemy.stamina = Math.min(newEnemy.stamina + 4, state.enemyCreature.maxStamina);
+          newEnemy.stamina = Math.min(newEnemy.stamina + GAME_CONFIG.combat.staminaPerTurnRecovery, state.enemyCreature.maxStamina);
           newEnemy.winded = false;
 
           // Process enemy status effects
           if (newEnemy.burnTurns > 0) {
-            newEnemy.hp = Math.max(0, newEnemy.hp - 3);
+            newEnemy.hp = Math.max(0, newEnemy.hp - GAME_CONFIG.statusFx.burnDamage);
             newEnemy.burnTurns--;
-            log.push(`${state.enemyCreature.name} takes 3 burn damage!`);
+            log.push(`${state.enemyCreature.name} takes ${GAME_CONFIG.statusFx.burnDamage} burn damage!`);
           }
           if (newEnemy.poisonTurns > 0) {
-            newEnemy.hp = Math.max(0, newEnemy.hp - 2);
+            newEnemy.hp = Math.max(0, newEnemy.hp - GAME_CONFIG.statusFx.poisonDamage);
             newEnemy.poisonTurns--;
-            log.push(`${state.enemyCreature.name} takes 2 poison damage!`);
+            log.push(`${state.enemyCreature.name} takes ${GAME_CONFIG.statusFx.poisonDamage} poison damage!`);
           }
 
           // Check if enemy died from status effects
@@ -2210,7 +2211,7 @@
           }
 
           if (selectedMove.effect === 'rest') {
-            newEnemy.stamina = Math.min(newEnemy.stamina + 12, state.enemyCreature.maxStamina);
+            newEnemy.stamina = Math.min(newEnemy.stamina + GAME_CONFIG.combat.restRecoveryBase + GAME_CONFIG.combat.staminaPerTurnRecovery, state.enemyCreature.maxStamina);
             log.push(`${state.enemyCreature.name} rests.`);
           } else if (selectedMove.effect === 'guard') {
             newEnemy.isGuarding = true;
@@ -2230,15 +2231,15 @@
 
             // Apply status effects from enemy attacks
             if (selectedMove.effect === 'burn' && (!activeCreature.burnTurns || activeCreature.burnTurns === 0)) {
-              activeCreature.burnTurns = 2;
+              activeCreature.burnTurns = GAME_CONFIG.statusFx.burnDuration;
               log.push(`${activeCreature.nickname || activeCreature.name} is burning!`);
             }
             if (selectedMove.effect === 'poison' && (!activeCreature.poisonTurns || activeCreature.poisonTurns === 0)) {
-              activeCreature.poisonTurns = 3;
+              activeCreature.poisonTurns = GAME_CONFIG.statusFx.poisonDuration;
               log.push(`${activeCreature.nickname || activeCreature.name} is poisoned!`);
             }
             if (selectedMove.effect === 'chill' && (!activeCreature.chillTurns || activeCreature.chillTurns === 0)) {
-              activeCreature.chillTurns = 2;
+              activeCreature.chillTurns = GAME_CONFIG.statusFx.chillDuration;
               log.push(`${activeCreature.nickname || activeCreature.name} is chilled!`);
             }
 
@@ -2253,7 +2254,7 @@
               log.push(`${activeCreature.nickname || activeCreature.name} loses ${selectedMove.drainAmount} stamina!`);
             }
 
-            if (newEnemy.stamina < 5) {
+            if (newEnemy.stamina < GAME_CONFIG.combat.windedThreshold) {
               newEnemy.winded = true;
               log.push(`${state.enemyCreature.name} is winded!`);
             }
@@ -2988,7 +2989,7 @@
               <span style={{ fontSize: 'var(--font-xs)', color: GBC.gold }}>{state.playerName || 'Ashen One'}</span>
               <span>{mapName}</span>
             </span>
-            <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM {state.team.length}/{MAX_TEAM_SIZE}</span>
+            <span style={{ color: GBC.textDim, fontSize: 'var(--font-sm)' }}>TEAM {state.team.length}/{GAME_CONFIG.souls.maxTeamSize}</span>
           </div>
 
           <div style={styles.mapContainer}>
@@ -3732,14 +3733,14 @@
             <div
               style={{
                 ...styles.staminaBar,
-                borderColor: activeCreature.stamina < 5 ? GBC.red : activeCreature.stamina < 8 ? GBC.gold : GBC.border
+                borderColor: activeCreature.stamina < GAME_CONFIG.combat.windedThreshold ? GBC.red : activeCreature.stamina < GAME_CONFIG.combat.windedWarningThreshold ? GBC.gold : GBC.border
               }}
-              className={activeCreature.stamina < 5 ? 'stamina-warning' : ''}
+              className={activeCreature.stamina < GAME_CONFIG.combat.windedThreshold ? 'stamina-warning' : ''}
             >
               <div style={{
                 ...styles.staminaFill,
                 width: `${(activeCreature.stamina / maxStamina) * 100}%`,
-                backgroundColor: activeCreature.stamina < 5 ? GBC.red : activeCreature.stamina < 8 ? GBC.gold : GBC.blue
+                backgroundColor: activeCreature.stamina < GAME_CONFIG.combat.windedThreshold ? GBC.red : activeCreature.stamina < GAME_CONFIG.combat.windedWarningThreshold ? GBC.gold : GBC.blue
               }} />
             </div>
           </div>
@@ -3781,8 +3782,8 @@
 
             {/* Bind button - only for wild creatures, not bosses */}
             {!state.isBossFight && (() => {
-              const teamFull = state.team.length >= MAX_TEAM_SIZE;
-              const canAfford = state.souls >= BIND_COST;
+              const teamFull = state.team.length >= GAME_CONFIG.souls.maxTeamSize;
+              const canAfford = state.souls >= GAME_CONFIG.souls.bindCost;
               const canBind = canAfford && state.turnPhase === 'player';
               const difficulty = getDifficulty(state);
               const captureChance = getCaptureChance(state.enemy.hp, state.enemy.maxHp, difficulty.captureBonus);
@@ -3806,9 +3807,9 @@
                     color: GBC.textDim,
                     opacity: 0.6
                   }}>B</span>
-                  <div>SOUL BIND ({BIND_COST} souls)</div>
+                  <div>SOUL BIND ({GAME_CONFIG.souls.bindCost} souls)</div>
                   <div style={{ fontSize: 'var(--font-xs)', marginTop: '3px', color: teamFull ? GBC.gold : 'inherit' }}>
-                    {!canAfford ? `NEED ${BIND_COST - state.souls} MORE SOULS` :
+                    {!canAfford ? `NEED ${GAME_CONFIG.souls.bindCost - state.souls} MORE SOULS` :
                      teamFull ? 'MUST RELEASE ONE' :
                      `${captureChance}% CHANCE`}
                   </div>
@@ -5021,6 +5022,818 @@
     }
 
 
+    // ============= DEV DASHBOARD =============
+
+const ConfigSlider = ({ label, value, min, max, step, onChange, color }) => {
+  const c = color || '#f6e05e';
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}>
+        <span style={{ color: '#a0aec0' }}>{label}</span>
+        <span style={{ color: c, fontWeight: 'bold' }}>{typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(2)) : value}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step || 1}
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        style={{
+          width: '100%',
+          height: 6,
+          marginTop: 4,
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          background: `linear-gradient(to right, ${c}88 0%, ${c}88 ${((value - min) / (max - min)) * 100}%, #333 ${((value - min) / (max - min)) * 100}%, #333 100%)`,
+          borderRadius: 3,
+          outline: 'none',
+          cursor: 'pointer',
+          accentColor: c
+        }}
+      />
+    </div>
+  );
+};
+
+const DevDashboard = ({ onClose, onModified }) => {
+  const [activeTab, setActiveTab] = useState('COMBAT');
+  const [, forceUpdate] = useState(0);
+  const [simAttacker, setSimAttacker] = useState('cindrath');
+  const [simMove, setSimMove] = useState(0);
+  const [simDefender, setSimDefender] = useState('cindrath');
+  const [simDifficulty, setSimDifficulty] = useState('scarred');
+  const [simWinded, setSimWinded] = useState(false);
+  const [simGuarding, setSimGuarding] = useState(false);
+  const [simScarred, setSimScarred] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importMsg, setImportMsg] = useState('');
+  const [expandedBoss, setExpandedBoss] = useState(null);
+  const [expandedCreature, setExpandedCreature] = useState(null);
+  const snapshots = useRef(null);
+
+  // Store original snapshots on first render
+  useEffect(() => {
+    if (!snapshots.current) {
+      snapshots.current = {
+        STARTERS: JSON.parse(JSON.stringify(STARTERS)),
+        WILD_CREATURES: JSON.parse(JSON.stringify(WILD_CREATURES)),
+        BOSS: JSON.parse(JSON.stringify(BOSS)),
+        TYPE_CHART: JSON.parse(JSON.stringify(TYPE_CHART)),
+        SCAR_TYPES: JSON.parse(JSON.stringify(SCAR_TYPES)),
+        DIFFICULTIES: JSON.parse(JSON.stringify(DIFFICULTIES)),
+        GAME_CONFIG: JSON.parse(JSON.stringify(window.GAME_CONFIG))
+      };
+      console.log('Dev Dashboard active. Live tuning enabled.');
+    }
+  }, []);
+
+  const rerender = () => forceUpdate(n => n + 1);
+
+  const updateConfig = (path, value) => {
+    const keys = path.split('.');
+    let obj = window.GAME_CONFIG;
+    for (let i = 0; i < keys.length - 1; i++) obj = obj[keys[i]];
+    obj[keys[keys.length - 1]] = value;
+    onModified(true);
+    rerender();
+  };
+
+  const getConfig = (path) => {
+    const keys = path.split('.');
+    let obj = window.GAME_CONFIG;
+    for (const k of keys) obj = obj[k];
+    return obj;
+  };
+
+  const resetAll = () => {
+    if (!snapshots.current) return;
+    window.GAME_CONFIG = JSON.parse(JSON.stringify(snapshots.current.GAME_CONFIG));
+    window.GAME_CONFIG_DEFAULTS = JSON.parse(JSON.stringify(snapshots.current.GAME_CONFIG));
+    // Reset game objects
+    Object.keys(snapshots.current.STARTERS).forEach(k => { Object.assign(STARTERS[k], JSON.parse(JSON.stringify(snapshots.current.STARTERS[k]))); });
+    Object.keys(snapshots.current.WILD_CREATURES).forEach(k => { Object.assign(WILD_CREATURES[k], JSON.parse(JSON.stringify(snapshots.current.WILD_CREATURES[k]))); });
+    Object.keys(snapshots.current.BOSS).forEach(k => { Object.assign(BOSS[k], JSON.parse(JSON.stringify(snapshots.current.BOSS[k]))); });
+    Object.keys(snapshots.current.TYPE_CHART).forEach(k => { TYPE_CHART[k] = JSON.parse(JSON.stringify(snapshots.current.TYPE_CHART[k])); });
+    SCAR_TYPES.length = 0;
+    snapshots.current.SCAR_TYPES.forEach(s => SCAR_TYPES.push(JSON.parse(JSON.stringify(s))));
+    Object.keys(snapshots.current.DIFFICULTIES).forEach(k => { Object.assign(DIFFICULTIES[k], JSON.parse(JSON.stringify(snapshots.current.DIFFICULTIES[k]))); });
+    onModified(false);
+    rerender();
+  };
+
+  const resetTab = () => {
+    if (!snapshots.current) return;
+    const cfg = snapshots.current.GAME_CONFIG;
+    switch (activeTab) {
+      case 'COMBAT':
+        window.GAME_CONFIG.combat = JSON.parse(JSON.stringify(cfg.combat));
+        break;
+      case 'STATUS':
+        window.GAME_CONFIG.statusFx = JSON.parse(JSON.stringify(cfg.statusFx));
+        break;
+      case 'SCARS':
+        window.GAME_CONFIG.scars = JSON.parse(JSON.stringify(cfg.scars));
+        SCAR_TYPES.length = 0;
+        snapshots.current.SCAR_TYPES.forEach(s => SCAR_TYPES.push(JSON.parse(JSON.stringify(s))));
+        break;
+      case 'DIFFICULTY':
+        Object.keys(snapshots.current.DIFFICULTIES).forEach(k => { Object.assign(DIFFICULTIES[k], JSON.parse(JSON.stringify(snapshots.current.DIFFICULTIES[k]))); });
+        break;
+      case 'BOSSES':
+        Object.keys(snapshots.current.BOSS).forEach(k => { Object.assign(BOSS[k], JSON.parse(JSON.stringify(snapshots.current.BOSS[k]))); });
+        window.GAME_CONFIG.bosses = JSON.parse(JSON.stringify(cfg.bosses));
+        break;
+      case 'SOULS':
+        window.GAME_CONFIG.souls = JSON.parse(JSON.stringify(cfg.souls));
+        break;
+      case 'ENCOUNTERS':
+        window.GAME_CONFIG.wildEncounters = JSON.parse(JSON.stringify(cfg.wildEncounters));
+        break;
+      case 'CREATURES':
+        Object.keys(snapshots.current.STARTERS).forEach(k => { Object.assign(STARTERS[k], JSON.parse(JSON.stringify(snapshots.current.STARTERS[k]))); });
+        Object.keys(snapshots.current.WILD_CREATURES).forEach(k => { Object.assign(WILD_CREATURES[k], JSON.parse(JSON.stringify(snapshots.current.WILD_CREATURES[k]))); });
+        break;
+      case 'TYPE CHART':
+        Object.keys(snapshots.current.TYPE_CHART).forEach(k => { TYPE_CHART[k] = JSON.parse(JSON.stringify(snapshots.current.TYPE_CHART[k])); });
+        break;
+    }
+    onModified(true);
+    rerender();
+  };
+
+  const doExport = () => {
+    const data = {
+      GAME_CONFIG: window.GAME_CONFIG,
+      STARTERS, WILD_CREATURES, BOSS, TYPE_CHART, SCAR_TYPES, DIFFICULTIES
+    };
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => {
+      setImportMsg('Copied to clipboard!');
+      setTimeout(() => setImportMsg(''), 2000);
+    });
+  };
+
+  const doImport = () => {
+    try {
+      const data = JSON.parse(importText);
+      if (data.GAME_CONFIG) {
+        window.GAME_CONFIG = data.GAME_CONFIG;
+        window.GAME_CONFIG_DEFAULTS = JSON.parse(JSON.stringify(data.GAME_CONFIG));
+      }
+      if (data.STARTERS) Object.keys(data.STARTERS).forEach(k => { if (STARTERS[k]) Object.assign(STARTERS[k], data.STARTERS[k]); });
+      if (data.WILD_CREATURES) Object.keys(data.WILD_CREATURES).forEach(k => { if (WILD_CREATURES[k]) Object.assign(WILD_CREATURES[k], data.WILD_CREATURES[k]); });
+      if (data.BOSS) Object.keys(data.BOSS).forEach(k => { if (BOSS[k]) Object.assign(BOSS[k], data.BOSS[k]); });
+      if (data.TYPE_CHART) Object.keys(data.TYPE_CHART).forEach(k => { TYPE_CHART[k] = data.TYPE_CHART[k]; });
+      if (data.SCAR_TYPES) { SCAR_TYPES.length = 0; data.SCAR_TYPES.forEach(s => SCAR_TYPES.push(s)); }
+      if (data.DIFFICULTIES) Object.keys(data.DIFFICULTIES).forEach(k => { if (DIFFICULTIES[k]) Object.assign(DIFFICULTIES[k], data.DIFFICULTIES[k]); });
+      onModified(true);
+      setImportMsg('Import successful!');
+      setImportText('');
+      rerender();
+    } catch (e) {
+      setImportMsg('Import failed: ' + e.message);
+    }
+    setTimeout(() => setImportMsg(''), 3000);
+  };
+
+  const typeColor = (t) => {
+    const map = { fire: GBC.fire, water: GBC.water, grass: GBC.grass, dark: GBC.dark, light: GBC.light, darklight: '#c4b5fd' };
+    return map[t] || '#a0aec0';
+  };
+
+  const allCreatures = { ...STARTERS, ...WILD_CREATURES };
+
+  const TABS = ['COMBAT', 'STATUS', 'SCARS', 'DIFFICULTY', 'BOSSES', 'SOULS', 'ENCOUNTERS', 'CREATURES', 'TYPE CHART', 'SIMULATOR'];
+
+  // Styles
+  const S = {
+    overlay: {
+      position: 'fixed', top: 0, right: 0, bottom: 0, width: 420, maxWidth: '100vw',
+      background: 'rgba(10,10,10,0.97)', borderLeft: '1px solid #333',
+      zIndex: 2050, display: 'flex', flexDirection: 'column',
+      fontFamily: "'IBM Plex Mono', monospace", color: '#f0e6d3', fontSize: 12,
+      animation: 'devSlideIn 0.2s ease-out'
+    },
+    header: {
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '10px 14px', borderBottom: '1px solid #333', flexShrink: 0
+    },
+    tabBar: {
+      display: 'flex', flexWrap: 'wrap', gap: 0, padding: '6px 10px',
+      borderBottom: '1px solid #222', flexShrink: 0
+    },
+    tab: (active) => ({
+      padding: '4px 8px', fontSize: 9, cursor: 'pointer', letterSpacing: 0.5,
+      color: active ? '#f6e05e' : '#666', borderBottom: active ? '2px solid #f6e05e' : '2px solid transparent',
+      background: 'none', border: 'none', fontFamily: "'IBM Plex Mono', monospace",
+      transition: 'color 0.15s'
+    }),
+    content: {
+      flex: 1, overflowY: 'auto', padding: '12px 14px',
+      scrollbarWidth: 'thin', scrollbarColor: '#333 #0f0f0f'
+    },
+    section: { marginBottom: 16 },
+    sectionTitle: { color: '#f6e05e', fontSize: 11, fontWeight: 'bold', marginBottom: 8, letterSpacing: 1 },
+    btn: (c) => ({
+      padding: '4px 10px', fontSize: 10, cursor: 'pointer', border: '1px solid ' + (c || '#555'),
+      background: '#1a1a1a', color: c || '#a0aec0', borderRadius: 3,
+      fontFamily: "'IBM Plex Mono', monospace"
+    }),
+    closeBtn: {
+      background: 'none', border: 'none', color: '#666', fontSize: 18, cursor: 'pointer',
+      fontFamily: "'IBM Plex Mono', monospace", padding: '0 4px', lineHeight: 1
+    },
+    dot: {
+      width: 8, height: 8, borderRadius: '50%', background: '#fc8181',
+      display: 'inline-block', marginRight: 8,
+      animation: 'devPulse 1.5s ease-in-out infinite'
+    },
+    collapsible: (open) => ({
+      cursor: 'pointer', padding: '6px 8px', background: '#1a1a1a', borderRadius: 3,
+      marginBottom: open ? 0 : 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      border: '1px solid #282828'
+    }),
+    collapsibleBody: {
+      padding: '8px', background: '#141414', borderRadius: '0 0 3px 3px',
+      marginBottom: 6, border: '1px solid #282828', borderTop: 'none'
+    }
+  };
+
+  // Inject keyframes once
+  useEffect(() => {
+    if (!document.getElementById('dev-dash-keyframes')) {
+      const style = document.createElement('style');
+      style.id = 'dev-dash-keyframes';
+      style.textContent = `
+        @keyframes devSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes devPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .dev-dash-scroll::-webkit-scrollbar { width: 6px; }
+        .dev-dash-scroll::-webkit-scrollbar-track { background: #0f0f0f; }
+        .dev-dash-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        .dev-dash input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #f6e05e; cursor: pointer; border: none; }
+        .dev-dash input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #f6e05e; cursor: pointer; border: none; }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
+  // ---- Tab renderers ----
+
+  const renderCombat = () => (
+    <div>
+      <div style={S.sectionTitle}>DAMAGE</div>
+      <ConfigSlider label="Guard Damage Reduction" value={getConfig('combat.guardDamageReduction')} min={0} max={1} step={0.05} onChange={v => updateConfig('combat.guardDamageReduction', v)} />
+      <ConfigSlider label="Winded Damage Bonus" value={getConfig('combat.windedDamageBonus')} min={1} max={2} step={0.05} onChange={v => updateConfig('combat.windedDamageBonus', v)} color={GBC.red} />
+      <ConfigSlider label="Scarred Damage Penalty" value={getConfig('combat.scarredDamagePenalty')} min={0.25} max={1} step={0.05} onChange={v => updateConfig('combat.scarredDamagePenalty', v)} color={GBC.dark} />
+      <ConfigSlider label="Minimum Damage" value={getConfig('combat.minimumDamage')} min={0} max={10} step={1} onChange={v => updateConfig('combat.minimumDamage', v)} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>STAMINA</div>
+      <ConfigSlider label="Winded Threshold" value={getConfig('combat.windedThreshold')} min={1} max={15} step={1} onChange={v => updateConfig('combat.windedThreshold', v)} color={GBC.red} />
+      <ConfigSlider label="Winded Warning Threshold" value={getConfig('combat.windedWarningThreshold')} min={1} max={20} step={1} onChange={v => updateConfig('combat.windedWarningThreshold', v)} color="#f6ad55" />
+      <ConfigSlider label="Stamina Per Turn Recovery" value={getConfig('combat.staminaPerTurnRecovery')} min={0} max={10} step={1} onChange={v => updateConfig('combat.staminaPerTurnRecovery', v)} color={GBC.green} />
+      <ConfigSlider label="Rest Recovery Base" value={getConfig('combat.restRecoveryBase')} min={1} max={20} step={1} onChange={v => updateConfig('combat.restRecoveryBase', v)} color={GBC.green} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>THRESHOLDS</div>
+      <ConfigSlider label="Scarred Damage Threshold (scars)" value={getConfig('combat.scarredDamageThreshold')} min={1} max={10} step={1} onChange={v => updateConfig('combat.scarredDamageThreshold', v)} />
+    </div>
+  );
+
+  const renderStatus = () => (
+    <div>
+      <div style={S.sectionTitle}>BURN</div>
+      <ConfigSlider label="Burn Duration (turns)" value={getConfig('statusFx.burnDuration')} min={1} max={8} step={1} onChange={v => updateConfig('statusFx.burnDuration', v)} color={GBC.fire} />
+      <ConfigSlider label="Burn Damage" value={getConfig('statusFx.burnDamage')} min={1} max={15} step={1} onChange={v => updateConfig('statusFx.burnDamage', v)} color={GBC.fire} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>POISON</div>
+      <ConfigSlider label="Poison Duration (turns)" value={getConfig('statusFx.poisonDuration')} min={1} max={8} step={1} onChange={v => updateConfig('statusFx.poisonDuration', v)} color={GBC.grass} />
+      <ConfigSlider label="Poison Damage" value={getConfig('statusFx.poisonDamage')} min={1} max={15} step={1} onChange={v => updateConfig('statusFx.poisonDamage', v)} color={GBC.grass} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>CHILL</div>
+      <ConfigSlider label="Chill Duration (turns)" value={getConfig('statusFx.chillDuration')} min={1} max={8} step={1} onChange={v => updateConfig('statusFx.chillDuration', v)} color={GBC.water} />
+      <ConfigSlider label="Chill Skip Chance" value={getConfig('statusFx.chillSkipChance')} min={0} max={1} step={0.05} onChange={v => updateConfig('statusFx.chillSkipChance', v)} color={GBC.water} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>ARENA EFFECTS</div>
+      <ConfigSlider label="Scorched Earth Damage" value={getConfig('statusFx.scorchedEarthDamage')} min={0} max={10} step={1} onChange={v => updateConfig('statusFx.scorchedEarthDamage', v)} color={GBC.fire} />
+      <ConfigSlider label="Fractured Aura Damage" value={getConfig('statusFx.fracturedAuraDamage')} min={0} max={10} step={1} onChange={v => updateConfig('statusFx.fracturedAuraDamage', v)} color={GBC.dark} />
+    </div>
+  );
+
+  const renderScars = () => (
+    <div>
+      <div style={S.sectionTitle}>HOLLOWED</div>
+      <ConfigSlider label="Hollowed Stat Multiplier" value={getConfig('scars.hollowedStatMultiplier')} min={0.25} max={1} step={0.05} onChange={v => updateConfig('scars.hollowedStatMultiplier', v)} color={GBC.dark} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>SCAR TYPES</div>
+      {SCAR_TYPES.map((scar, i) => (
+        <div key={scar.id} style={{ marginBottom: 12, padding: 8, background: '#1a1a1a', borderRadius: 3, border: '1px solid #282828' }}>
+          <div style={{ color: '#f6e05e', fontSize: 11, marginBottom: 6 }}>{scar.name} <span style={{ color: '#666', fontSize: 9 }}>({scar.id})</span></div>
+          <div style={{ color: '#888', fontSize: 10, marginBottom: 4 }}>{scar.description}</div>
+          {scar.value !== undefined && (
+            <ConfigSlider
+              label={`Effect value (${scar.effect})`}
+              value={scar.value}
+              min={-20}
+              max={0}
+              step={1}
+              onChange={v => { SCAR_TYPES[i].value = v; SCAR_TYPES[i].description = `${v} ${scar.effect === 'maxHp' ? 'max HP' : 'max Stamina'}`; onModified(true); rerender(); }}
+              color={GBC.red}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderDifficulty = () => {
+    const diffKeys = Object.keys(DIFFICULTIES);
+    const numericFields = ['wildDamageMult', 'bossDamageMult', 'soulDropPercent', 'captureBonus', 'bossHpMult', 'hollowedThreshold'];
+    const boolFields = ['scarsHealAtBonfire', 'dropBankedSouls', 'bonfireHeals', 'permadeath', 'bossPhaseTransition'];
+    const scarFields = ['hp', 'stamina'];
+
+    return (
+      <div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+          {diffKeys.map(dk => {
+            const d = DIFFICULTIES[dk];
+            return (
+              <div key={dk} style={{ padding: 8, background: '#1a1a1a', borderRadius: 3, border: '1px solid #282828' }}>
+                <div style={{ color: '#f6e05e', fontSize: 11, fontWeight: 'bold', marginBottom: 8, textAlign: 'center' }}>
+                  {d.icon} {d.name}
+                </div>
+                {numericFields.map(f => {
+                  const ranges = {
+                    wildDamageMult: [0.25, 2, 0.05], bossDamageMult: [0.25, 2, 0.05],
+                    soulDropPercent: [0, 2, 0.1], captureBonus: [-50, 50, 5],
+                    bossHpMult: [0.5, 3, 0.05], hollowedThreshold: [1, 10, 1]
+                  };
+                  const [mn, mx, st] = ranges[f] || [0, 10, 1];
+                  return (
+                    <ConfigSlider key={f} label={f} value={d[f]} min={mn} max={mx} step={st}
+                      onChange={v => { DIFFICULTIES[dk][f] = v; onModified(true); rerender(); }}
+                    />
+                  );
+                })}
+                {boolFields.map(f => (
+                  <div key={f} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, fontSize: 10 }}>
+                    <span style={{ color: '#a0aec0' }}>{f}</span>
+                    <span
+                      style={{ cursor: 'pointer', color: d[f] ? GBC.green : GBC.red, fontWeight: 'bold' }}
+                      onClick={() => { DIFFICULTIES[dk][f] = !d[f]; onModified(true); rerender(); }}
+                    >
+                      {d[f] ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                ))}
+                <div style={{ marginTop: 6, fontSize: 10, color: '#666' }}>Scar Penalties:</div>
+                {scarFields.map(sf => (
+                  <ConfigSlider key={sf} label={`scar ${sf}`} value={d.scarPenalties[sf]} min={-15} max={0} step={1}
+                    onChange={v => { DIFFICULTIES[dk].scarPenalties[sf] = v; onModified(true); rerender(); }}
+                    color={GBC.red}
+                  />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderBosses = () => (
+    <div>
+      <div style={S.sectionTitle}>GLOBAL</div>
+      <ConfigSlider label="Phase Transition Threshold" value={getConfig('bosses.phaseTransitionThreshold')} min={0.1} max={0.7} step={0.05}
+        onChange={v => updateConfig('bosses.phaseTransitionThreshold', v)} color={GBC.red} />
+      <ConfigSlider label="Obsidian Hound Phase Heal" value={getConfig('bosses.obsidianHoundPhaseHeal')} min={0} max={50} step={1}
+        onChange={v => updateConfig('bosses.obsidianHoundPhaseHeal', v)} color={GBC.fire} />
+      <ConfigSlider label="Hollow Warden Phase Heal" value={getConfig('bosses.hollowWardenPhaseHeal')} min={0} max={50} step={1}
+        onChange={v => updateConfig('bosses.hollowWardenPhaseHeal', v)} color={GBC.dark} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>BOSS DATA</div>
+      {Object.entries(BOSS).map(([key, boss]) => (
+        <div key={key}>
+          <div style={S.collapsible(expandedBoss === key)} onClick={() => setExpandedBoss(expandedBoss === key ? null : key)}>
+            <span style={{ color: typeColor(boss.type), fontWeight: 'bold', fontSize: 11 }}>{boss.name}</span>
+            <span style={{ color: '#555', fontSize: 10 }}>{expandedBoss === key ? '[-]' : '[+]'}</span>
+          </div>
+          {expandedBoss === key && (
+            <div style={S.collapsibleBody}>
+              <ConfigSlider label="Max HP" value={boss.maxHp} min={20} max={200} step={5}
+                onChange={v => { BOSS[key].maxHp = v; onModified(true); rerender(); }} color={GBC.red} />
+              <ConfigSlider label="Max Stamina" value={boss.maxStamina} min={10} max={60} step={1}
+                onChange={v => { BOSS[key].maxStamina = v; onModified(true); rerender(); }} color={GBC.blue} />
+              <ConfigSlider label="Souls" value={boss.souls} min={10} max={500} step={10}
+                onChange={v => { BOSS[key].souls = v; onModified(true); rerender(); }} color={GBC.gold} />
+              <div style={{ color: '#888', fontSize: 10, marginTop: 8, marginBottom: 4 }}>Phase 1 Moves</div>
+              {boss.moves.map((m, mi) => (
+                <div key={mi} style={{ marginLeft: 8, marginBottom: 6 }}>
+                  <div style={{ color: '#a0aec0', fontSize: 10, marginBottom: 2 }}>{m.name}</div>
+                  {m.damage > 0 && <ConfigSlider label="Damage" value={m.damage} min={0} max={40} step={1}
+                    onChange={v => { BOSS[key].moves[mi].damage = v; onModified(true); rerender(); }} color={GBC.red} />}
+                  <ConfigSlider label="Cost" value={m.cost} min={0} max={20} step={1}
+                    onChange={v => { BOSS[key].moves[mi].cost = v; onModified(true); rerender(); }} />
+                </div>
+              ))}
+              {boss.phase2Moves && (
+                <React.Fragment>
+                  <div style={{ color: '#888', fontSize: 10, marginTop: 8, marginBottom: 4 }}>Phase 2 Moves</div>
+                  {boss.phase2Moves.map((m, mi) => (
+                    <div key={mi} style={{ marginLeft: 8, marginBottom: 6 }}>
+                      <div style={{ color: '#a0aec0', fontSize: 10, marginBottom: 2 }}>{m.name}</div>
+                      {m.damage > 0 && <ConfigSlider label="Damage" value={m.damage} min={0} max={40} step={1}
+                        onChange={v => { BOSS[key].phase2Moves[mi].damage = v; onModified(true); rerender(); }} color={GBC.red} />}
+                      <ConfigSlider label="Cost" value={m.cost} min={0} max={20} step={1}
+                        onChange={v => { BOSS[key].phase2Moves[mi].cost = v; onModified(true); rerender(); }} />
+                    </div>
+                  ))}
+                </React.Fragment>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderSouls = () => (
+    <div>
+      <div style={S.sectionTitle}>SOUL BIND</div>
+      <ConfigSlider label="Bind Cost" value={getConfig('souls.bindCost')} min={5} max={100} step={5}
+        onChange={v => updateConfig('souls.bindCost', v)} color={GBC.gold} />
+      <ConfigSlider label="Max Team Size" value={getConfig('souls.maxTeamSize')} min={1} max={10} step={1}
+        onChange={v => updateConfig('souls.maxTeamSize', v)} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>CAPTURE BRACKETS (% chance)</div>
+      <ConfigSlider label="Under 10% HP" value={getConfig('souls.captureBrackets.under10')} min={0} max={100} step={5}
+        onChange={v => updateConfig('souls.captureBrackets.under10', v)} color={GBC.green} />
+      <ConfigSlider label="Under 25% HP" value={getConfig('souls.captureBrackets.under25')} min={0} max={100} step={5}
+        onChange={v => updateConfig('souls.captureBrackets.under25', v)} color={GBC.green} />
+      <ConfigSlider label="Under 50% HP" value={getConfig('souls.captureBrackets.under50')} min={0} max={100} step={5}
+        onChange={v => updateConfig('souls.captureBrackets.under50', v)} color="#f6ad55" />
+      <ConfigSlider label="Over 50% HP" value={getConfig('souls.captureBrackets.over50')} min={0} max={100} step={5}
+        onChange={v => updateConfig('souls.captureBrackets.over50', v)} color={GBC.red} />
+      <div style={{ ...S.sectionTitle, marginTop: 16 }}>CAPTURE CAPS</div>
+      <ConfigSlider label="Capture Cap Min (%)" value={getConfig('souls.captureCapMin')} min={0} max={50} step={1}
+        onChange={v => updateConfig('souls.captureCapMin', v)} />
+      <ConfigSlider label="Capture Cap Max (%)" value={getConfig('souls.captureCapMax')} min={50} max={100} step={1}
+        onChange={v => updateConfig('souls.captureCapMax', v)} />
+    </div>
+  );
+
+  const renderEncounters = () => {
+    const cfg = window.GAME_CONFIG.wildEncounters;
+    return (
+      <div>
+        <div style={S.sectionTitle}>GLOBAL</div>
+        <ConfigSlider label="Grass Encounter Chance" value={cfg.grassEncounterChance} min={0} max={1} step={0.05}
+          onChange={v => updateConfig('wildEncounters.grassEncounterChance', v)} color={GBC.grass} />
+        <ConfigSlider label="HP Variance Range" value={cfg.hpVarianceRange} min={1} max={30} step={1}
+          onChange={v => updateConfig('wildEncounters.hpVarianceRange', v)} />
+        <ConfigSlider label="Stamina Variance Range" value={cfg.staminaVarianceRange} min={1} max={15} step={1}
+          onChange={v => updateConfig('wildEncounters.staminaVarianceRange', v)} />
+
+        <div style={{ ...S.sectionTitle, marginTop: 16 }}>SURFACE</div>
+        <ConfigSlider label="HP Floor" value={cfg.surface.hpFloor} min={5} max={50} step={1}
+          onChange={v => updateConfig('wildEncounters.surface.hpFloor', v)} />
+        <ConfigSlider label="Stamina Floor" value={cfg.surface.staminaFloor} min={5} max={30} step={1}
+          onChange={v => updateConfig('wildEncounters.surface.staminaFloor', v)} />
+        <ConfigSlider label="Pre-scar Chance" value={cfg.surface.preScarChance} min={0} max={1} step={0.05}
+          onChange={v => updateConfig('wildEncounters.surface.preScarChance', v)} color={GBC.red} />
+
+        <div style={{ ...S.sectionTitle, marginTop: 16 }}>DEEP</div>
+        <ConfigSlider label="HP Floor" value={cfg.deep.hpFloor} min={5} max={60} step={1}
+          onChange={v => updateConfig('wildEncounters.deep.hpFloor', v)} />
+        <ConfigSlider label="Stamina Floor" value={cfg.deep.staminaFloor} min={5} max={30} step={1}
+          onChange={v => updateConfig('wildEncounters.deep.staminaFloor', v)} />
+        <ConfigSlider label="Pre-scar Chance" value={cfg.deep.preScarChance} min={0} max={1} step={0.05}
+          onChange={v => updateConfig('wildEncounters.deep.preScarChance', v)} color={GBC.red} />
+        <ConfigSlider label="HP Bonus" value={cfg.deep.hpBonus} min={0} max={20} step={1}
+          onChange={v => updateConfig('wildEncounters.deep.hpBonus', v)} />
+        <ConfigSlider label="Stamina Bonus" value={cfg.deep.staminaBonus} min={0} max={10} step={1}
+          onChange={v => updateConfig('wildEncounters.deep.staminaBonus', v)} />
+        <ConfigSlider label="Umbravine Chance" value={cfg.deep.umbravineChance} min={0} max={1} step={0.05}
+          onChange={v => updateConfig('wildEncounters.deep.umbravineChance', v)} color={GBC.dark} />
+        <ConfigSlider label="Umbravine Souls" value={cfg.deep.umbravineSouls} min={5} max={60} step={1}
+          onChange={v => updateConfig('wildEncounters.deep.umbravineSouls', v)} color={GBC.gold} />
+        <ConfigSlider label="Solrath Souls" value={cfg.deep.solrathSouls} min={5} max={60} step={1}
+          onChange={v => updateConfig('wildEncounters.deep.solrathSouls', v)} color={GBC.gold} />
+
+        <div style={{ ...S.sectionTitle, marginTop: 16 }}>LABYRINTH</div>
+        <ConfigSlider label="HP Floor" value={cfg.labyrinth.hpFloor} min={5} max={80} step={1}
+          onChange={v => updateConfig('wildEncounters.labyrinth.hpFloor', v)} />
+        <ConfigSlider label="Stamina Floor" value={cfg.labyrinth.staminaFloor} min={5} max={30} step={1}
+          onChange={v => updateConfig('wildEncounters.labyrinth.staminaFloor', v)} />
+        <ConfigSlider label="Pre-scar Chance" value={cfg.labyrinth.preScarChance} min={0} max={1} step={0.05}
+          onChange={v => updateConfig('wildEncounters.labyrinth.preScarChance', v)} color={GBC.red} />
+        <ConfigSlider label="HP Bonus" value={cfg.labyrinth.hpBonus} min={0} max={30} step={1}
+          onChange={v => updateConfig('wildEncounters.labyrinth.hpBonus', v)} />
+        <ConfigSlider label="Stamina Bonus" value={cfg.labyrinth.staminaBonus} min={0} max={15} step={1}
+          onChange={v => updateConfig('wildEncounters.labyrinth.staminaBonus', v)} />
+        <ConfigSlider label="Souls" value={cfg.labyrinth.souls} min={5} max={60} step={1}
+          onChange={v => updateConfig('wildEncounters.labyrinth.souls', v)} color={GBC.gold} />
+      </div>
+    );
+  };
+
+  const renderCreatures = () => {
+    const groups = [
+      { title: 'STARTERS', src: STARTERS, ref: 'STARTERS' },
+      { title: 'WILD', src: WILD_CREATURES, ref: 'WILD_CREATURES' }
+    ];
+    return (
+      <div>
+        {groups.map(g => (
+          <div key={g.title}>
+            <div style={S.sectionTitle}>{g.title}</div>
+            {Object.entries(g.src).map(([key, creature]) => (
+              <div key={key}>
+                <div style={S.collapsible(expandedCreature === key)} onClick={() => setExpandedCreature(expandedCreature === key ? null : key)}>
+                  <span style={{ color: typeColor(creature.type), fontWeight: 'bold', fontSize: 11 }}>
+                    {creature.name}
+                  </span>
+                  <span style={{ color: '#555', fontSize: 10 }}>{expandedCreature === key ? '[-]' : '[+]'}</span>
+                </div>
+                {expandedCreature === key && (
+                  <div style={S.collapsibleBody}>
+                    <ConfigSlider label="Max HP" value={creature.maxHp} min={10} max={100} step={1}
+                      onChange={v => { g.src[key].maxHp = v; onModified(true); rerender(); }} color={GBC.red} />
+                    <ConfigSlider label="Max Stamina" value={creature.maxStamina} min={5} max={50} step={1}
+                      onChange={v => { g.src[key].maxStamina = v; onModified(true); rerender(); }} color={GBC.blue} />
+                    {creature.souls !== undefined && (
+                      <ConfigSlider label="Souls" value={creature.souls} min={1} max={100} step={1}
+                        onChange={v => { g.src[key].souls = v; onModified(true); rerender(); }} color={GBC.gold} />
+                    )}
+                    <div style={{ color: '#888', fontSize: 10, marginTop: 8, marginBottom: 4 }}>Moves</div>
+                    {creature.moves.map((m, mi) => (
+                      <div key={mi} style={{ marginLeft: 8, marginBottom: 6 }}>
+                        <div style={{ color: '#a0aec0', fontSize: 10, marginBottom: 2 }}>{m.name}</div>
+                        {m.damage > 0 && <ConfigSlider label="Damage" value={m.damage} min={0} max={30} step={1}
+                          onChange={v => { g.src[key].moves[mi].damage = v; onModified(true); rerender(); }} color={GBC.red} />}
+                        <ConfigSlider label="Cost" value={m.cost} min={0} max={15} step={1}
+                          onChange={v => { g.src[key].moves[mi].cost = v; onModified(true); rerender(); }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderTypeChart = () => {
+    const types = Object.keys(TYPE_CHART);
+    const cellColor = (v) => {
+      if (v >= 2.0) return '#fc8181';
+      if (v >= 1.5) return '#f6ad55';
+      if (v > 1.0) return '#faf089';
+      if (v === 1.0) return '#555';
+      if (v >= 0.75) return '#a0aec0';
+      return '#68d391';
+    };
+    const cycleValue = (v) => {
+      if (v <= 0.5) return 0.75;
+      if (v <= 0.75) return 1.0;
+      if (v <= 1.0) return 1.25;
+      if (v <= 1.25) return 1.5;
+      if (v <= 1.5) return 2.0;
+      return 0.5;
+    };
+
+    return (
+      <div>
+        <div style={S.sectionTitle}>CLICK TO CYCLE: 0.5 → 0.75 → 1.0 → 1.25 → 1.5 → 2.0</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', fontSize: 10, width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ padding: 4, color: '#666', textAlign: 'left' }}>ATK \ DEF</th>
+                {types.map(t => (
+                  <th key={t} style={{ padding: 4, color: typeColor(t), textAlign: 'center', fontSize: 9 }}>
+                    {t.slice(0, 4).toUpperCase()}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {types.map(atkType => (
+                <tr key={atkType}>
+                  <td style={{ padding: 4, color: typeColor(atkType), fontWeight: 'bold', fontSize: 9 }}>
+                    {atkType.slice(0, 4).toUpperCase()}
+                  </td>
+                  {types.map(defType => {
+                    const v = TYPE_CHART[atkType][defType];
+                    return (
+                      <td key={defType}
+                        onClick={() => { TYPE_CHART[atkType][defType] = cycleValue(v); onModified(true); rerender(); }}
+                        style={{
+                          padding: 4, textAlign: 'center', cursor: 'pointer',
+                          background: cellColor(v) + '22', color: cellColor(v),
+                          fontWeight: v !== 1.0 ? 'bold' : 'normal',
+                          border: '1px solid #222', minWidth: 36
+                        }}
+                      >
+                        {v.toFixed(1)}x
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSimulator = () => {
+    const creatureList = Object.entries(allCreatures);
+    const atkCreature = allCreatures[simAttacker];
+    const defCreature = allCreatures[simDefender];
+    const atkMoves = atkCreature ? atkCreature.moves : [];
+    const move = atkMoves[simMove] || atkMoves[0];
+    const diff = DIFFICULTIES[simDifficulty] || DIFFICULTIES.scarred;
+
+    let result = null;
+    if (atkCreature && defCreature && move) {
+      const fakeAttacker = {
+        ...atkCreature, hp: atkCreature.maxHp, stamina: atkCreature.maxStamina,
+        scars: simScarred ? [{ id: 'fractured' }, { id: 'hesitant' }, { id: 'flinching' }] : []
+      };
+      const fakeDefender = {
+        ...defCreature, hp: defCreature.maxHp, stamina: defCreature.maxStamina,
+        isGuarding: simGuarding, winded: simWinded, scars: []
+      };
+      const diffMult = 1.0; // Player attacking, no difficulty mult
+      const rawDmg = move.damage;
+      const effectiveness = TYPE_CHART[atkCreature.type]?.[defCreature.type] ?? 1.0;
+      let damage = Math.floor(rawDmg * effectiveness);
+      if (simGuarding) damage = Math.floor(damage * window.GAME_CONFIG.combat.guardDamageReduction);
+      if (simWinded) damage = Math.floor(damage * window.GAME_CONFIG.combat.windedDamageBonus);
+      if (simScarred && fakeAttacker.scars.length >= window.GAME_CONFIG.combat.scarredDamageThreshold) {
+        damage = Math.floor(damage * window.GAME_CONFIG.combat.scarredDamagePenalty);
+      }
+      damage = Math.max(window.GAME_CONFIG.combat.minimumDamage, damage);
+
+      result = { rawDmg, effectiveness, damage, move };
+    }
+
+    return (
+      <div>
+        <div style={S.sectionTitle}>DAMAGE SIMULATOR</div>
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ color: '#a0aec0', fontSize: 10, marginBottom: 4 }}>Attacker</div>
+          <select value={simAttacker} onChange={e => { setSimAttacker(e.target.value); setSimMove(0); }}
+            style={{ width: '100%', padding: 6, background: '#1a1a1a', color: '#f0e6d3', border: '1px solid #333', borderRadius: 3, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }}>
+            {creatureList.map(([k, c]) => <option key={k} value={k}>{c.name} ({c.type})</option>)}
+          </select>
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ color: '#a0aec0', fontSize: 10, marginBottom: 4 }}>Move</div>
+          <select value={simMove} onChange={e => setSimMove(parseInt(e.target.value))}
+            style={{ width: '100%', padding: 6, background: '#1a1a1a', color: '#f0e6d3', border: '1px solid #333', borderRadius: 3, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }}>
+            {atkMoves.map((m, i) => <option key={i} value={i}>{m.name} (dmg:{m.damage} cost:{m.cost})</option>)}
+          </select>
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ color: '#a0aec0', fontSize: 10, marginBottom: 4 }}>Defender</div>
+          <select value={simDefender} onChange={e => setSimDefender(e.target.value)}
+            style={{ width: '100%', padding: 6, background: '#1a1a1a', color: '#f0e6d3', border: '1px solid #333', borderRadius: 3, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }}>
+            {creatureList.map(([k, c]) => <option key={k} value={k}>{c.name} ({c.type})</option>)}
+          </select>
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ color: '#a0aec0', fontSize: 10, marginBottom: 4 }}>Difficulty</div>
+          <select value={simDifficulty} onChange={e => setSimDifficulty(e.target.value)}
+            style={{ width: '100%', padding: 6, background: '#1a1a1a', color: '#f0e6d3', border: '1px solid #333', borderRadius: 3, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }}>
+            {Object.entries(DIFFICULTIES).map(([k, d]) => <option key={k} value={k}>{d.name}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 11 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#a0aec0' }}>
+            <input type="checkbox" checked={simWinded} onChange={e => setSimWinded(e.target.checked)} /> Winded
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#a0aec0' }}>
+            <input type="checkbox" checked={simGuarding} onChange={e => setSimGuarding(e.target.checked)} /> Guarding
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#a0aec0' }}>
+            <input type="checkbox" checked={simScarred} onChange={e => setSimScarred(e.target.checked)} /> Scarred (3)
+          </label>
+        </div>
+
+        {result && (
+          <div style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 4, padding: 12 }}>
+            <div style={{ fontSize: 10, color: '#888', marginBottom: 8 }}>RESULT</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 11 }}>
+              <div style={{ color: '#a0aec0' }}>Base Damage:</div>
+              <div style={{ color: '#f0e6d3', textAlign: 'right' }}>{result.rawDmg}</div>
+              <div style={{ color: '#a0aec0' }}>Type Effectiveness:</div>
+              <div style={{ color: result.effectiveness > 1 ? GBC.red : result.effectiveness < 1 ? GBC.green : '#f0e6d3', textAlign: 'right' }}>
+                {result.effectiveness.toFixed(2)}x {result.effectiveness > 1 ? '(super effective)' : result.effectiveness < 1 ? '(not effective)' : '(neutral)'}
+              </div>
+              {simGuarding && (
+                <React.Fragment>
+                  <div style={{ color: '#a0aec0' }}>Guard Reduction:</div>
+                  <div style={{ color: GBC.blue, textAlign: 'right' }}>x{window.GAME_CONFIG.combat.guardDamageReduction}</div>
+                </React.Fragment>
+              )}
+              {simWinded && (
+                <React.Fragment>
+                  <div style={{ color: '#a0aec0' }}>Winded Bonus:</div>
+                  <div style={{ color: GBC.red, textAlign: 'right' }}>x{window.GAME_CONFIG.combat.windedDamageBonus}</div>
+                </React.Fragment>
+              )}
+              {simScarred && (
+                <React.Fragment>
+                  <div style={{ color: '#a0aec0' }}>Scarred Penalty:</div>
+                  <div style={{ color: GBC.dark, textAlign: 'right' }}>x{window.GAME_CONFIG.combat.scarredDamagePenalty}</div>
+                </React.Fragment>
+              )}
+            </div>
+            <div style={{ borderTop: '1px solid #333', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#f6e05e', fontWeight: 'bold', fontSize: 16 }}>FINAL: {result.damage}</span>
+              {defCreature && (
+                <span style={{ color: '#888', fontSize: 11, alignSelf: 'center' }}>
+                  ({Math.ceil(defCreature.maxHp / Math.max(1, result.damage))} hits to KO)
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'COMBAT': return renderCombat();
+      case 'STATUS': return renderStatus();
+      case 'SCARS': return renderScars();
+      case 'DIFFICULTY': return renderDifficulty();
+      case 'BOSSES': return renderBosses();
+      case 'SOULS': return renderSouls();
+      case 'ENCOUNTERS': return renderEncounters();
+      case 'CREATURES': return renderCreatures();
+      case 'TYPE CHART': return renderTypeChart();
+      case 'SIMULATOR': return renderSimulator();
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="dev-dash" style={S.overlay}>
+      {/* Header */}
+      <div style={S.header}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={S.dot} />
+          <span style={{ color: '#f6e05e', fontWeight: 'bold', fontSize: 13, letterSpacing: 1 }}>LIVE BALANCE</span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button style={S.btn('#fc8181')} onClick={resetAll} title="Reset all to defaults">RESET ALL</button>
+          <button style={S.btn('#68d391')} onClick={doExport} title="Copy config JSON to clipboard">EXPORT</button>
+          <button style={S.btn('#63b3ed')} onClick={() => setActiveTab(activeTab === 'IMPORT' ? 'COMBAT' : 'IMPORT')} title="Import config JSON">IMPORT</button>
+          <button style={S.closeBtn} onClick={onClose} title="Close dashboard">&times;</button>
+        </div>
+      </div>
+
+      {/* Tab bar */}
+      <div style={S.tabBar}>
+        {TABS.map(t => (
+          <button key={t} style={S.tab(activeTab === t)} onClick={() => setActiveTab(t)}>{t}</button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="dev-dash-scroll" style={S.content}>
+        {activeTab === 'IMPORT' ? (
+          <div>
+            <div style={S.sectionTitle}>IMPORT CONFIG</div>
+            <textarea
+              value={importText}
+              onChange={e => setImportText(e.target.value)}
+              placeholder="Paste exported JSON here..."
+              style={{
+                width: '100%', height: 200, background: '#1a1a1a', color: '#f0e6d3',
+                border: '1px solid #333', borderRadius: 3, padding: 8, resize: 'vertical',
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 10
+              }}
+            />
+            <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button style={S.btn('#68d391')} onClick={doImport}>APPLY</button>
+              {importMsg && <span style={{ color: importMsg.includes('fail') ? GBC.red : GBC.green, fontSize: 10 }}>{importMsg}</span>}
+            </div>
+          </div>
+        ) : (
+          <div>
+            {/* Per-tab reset */}
+            {activeTab !== 'SIMULATOR' && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                <button style={S.btn('#fc8181')} onClick={resetTab}>RESET {activeTab}</button>
+              </div>
+            )}
+            {renderActiveTab()}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
     // ============= MAIN APP =============
     function ScarsOfAsh() {
       const [state, dispatch] = useReducer(gameReducer, initialState);
@@ -5034,6 +5847,9 @@
       const [confirmDialog, setConfirmDialog] = useState(null);
       const [checkingSave, setCheckingSave] = useState(true);
       const [existingSave, setExistingSave] = useState(null);
+      const devEnabledRef = useRef(new URLSearchParams(window.location.search).get('dev') === 'true');
+      const [showDevDashboard, setShowDevDashboard] = useState(false);
+      const [devModified, setDevModified] = useState(false);
       const prevBonfireRef = useRef(null);
       const playTimeRef = useRef(Date.now());
 
@@ -5111,6 +5927,19 @@
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
       }, [state.screen, showHelp, confirmDialog]);
+
+      // Handle backtick key for dev dashboard (only when enabled via URL param)
+      useEffect(() => {
+        if (!devEnabledRef.current) return;
+        const handleBacktick = (e) => {
+          if (e.key === '`') {
+            e.preventDefault();
+            setShowDevDashboard(prev => !prev);
+          }
+        };
+        window.addEventListener('keydown', handleBacktick);
+        return () => window.removeEventListener('keydown', handleBacktick);
+      }, []);
 
       const handleCloseHelp = () => {
         setShowHelp(false);
@@ -5395,6 +6224,31 @@
           )}
           {state.screen === 'credits' && (
             <Credits dispatch={dispatch} />
+          )}
+
+          {/* DEV badge */}
+          {devEnabledRef.current && devModified && (
+            <div
+              onClick={() => setShowDevDashboard(true)}
+              style={{
+                position: 'fixed', top: 8, left: 8,
+                background: '#fc8181', color: '#1a0a0a',
+                padding: '2px 8px', fontSize: 10,
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontWeight: 'bold', letterSpacing: 1,
+                borderRadius: 2, cursor: 'pointer', zIndex: 1001
+              }}
+            >
+              DEV
+            </div>
+          )}
+
+          {/* Dev Dashboard */}
+          {devEnabledRef.current && showDevDashboard && (
+            <DevDashboard
+              onClose={() => setShowDevDashboard(false)}
+              onModified={setDevModified}
+            />
           )}
         </div>
       );
